@@ -1,7 +1,18 @@
 import os
+import sys
 import telebot
 import funcs
 from loguru import logger
+
+logger.remove()
+logger.add(
+    sys.stdout,
+    level="INFO",
+    colorize=True,
+    format="<level>{level}\t| {message}</level>"
+)
+logger.info("start program")
+
 
 TOKEN = ""
 
@@ -10,8 +21,8 @@ bot = telebot.TeleBot(TOKEN)
 @bot.message_handler(content_types=["document"])
 def encrypt_document(message: telebot.types.Message):
     try:
-        bot.send_message(message.chat.id, "took a document " + message.document.file_name)
-        logger.info("took a document " + message.document.file_name)
+        bot.send_message(message.chat.id, f"Принят файл")
+        logger.info(f"{message.from_user.username}: document '{message.document.file_name}'")
 
         file_info = bot.get_file(message.document.file_id)
         data = bot.download_file(file_info.file_path)
@@ -21,19 +32,19 @@ def encrypt_document(message: telebot.types.Message):
             f.write(data)
 
         if message.caption:
-            bot.send_message(message.chat.id, "encrypting in progress...")
-            logger.info("encrypting in progress...")
+            bot.send_message(message.chat.id, "Шифрую и маскирую данные...")
+            logger.info("Encrypting in progress...")
             outimg_file = message.document.file_name + "_OUT.png"
             funcs.encode(message.document.file_name, funcs.encrypt(message.caption), outimg_file)
             bot.send_document(message.chat.id, open(outimg_file, "rb"))
-            logger.success("encrypting done")
+            logger.success(f"Encrypting done: {outimg_file}")
         else:
-            bot.send_message(message.chat.id, "decrypting in progress...")
-            logger.info("decrypting in progress...")
+            bot.send_message(message.chat.id, "Расшифровыаю данные...")
+            logger.info("Decrypting in progress...")
             bot.send_message(message.chat.id, funcs.decrypt(funcs.decode(message.document.file_name)))
-            logger.success("decrypting done...")
+            logger.success("Decrypting done")
     except Exception as e:
-        bot.send_message(message.chat.id, "a bit error")
+        bot.send_message(message.chat.id, "Ошибка! Возможно вы отправили не тот файли и т.д.")
         logger.error(f"{e}")
     finally:
         os.remove(message.document.file_name)
@@ -49,26 +60,26 @@ def encrypt_photo(message: telebot.types.Message):
         data = bot.download_file(file_info.file_path)
         outimg_file: str = None
 
-        logger.info("took a photo " + file_info.file_path)
-        bot.send_message(message.chat.id, "took a photo " + file_info.file_path)
+        bot.send_message(message.chat.id, "Принято фото")
+        logger.info(f"{message.from_user.username}: photo '{file_info.file_path}'")
 
         with open(str(message.chat.id) + ".jpg", "wb") as f:
             f.write(data)
 
         if message.caption:
-            bot.send_message(message.chat.id, "encrypting in progress...")
-            logger.info("encrypting in progress...")
+            bot.send_message(message.chat.id, "Шифрую и маскирую данные...")
+            logger.info("Encrypting in progress...")
             outimg_file = str(message.chat.id) + "_OUT.png"
             funcs.encode(str(message.chat.id) + ".jpg", funcs.encrypt(message.caption), outimg_file)
             bot.send_document(message.chat.id, open(outimg_file, "rb"))
-            logger.success("encrypting done")
+            logger.success(f"Encrypting done: {outimg_file}")
         else:
-            bot.send_message(message.chat.id, "decrypting in progress...")
-            logger.info("decrypting in progress...")
+            bot.send_message(message.chat.id, "Расшифровыаю данные...")
+            logger.info("Decrypting in progress...")
             bot.send_message(message.chat.id, funcs.decrypt(funcs.decode(str(message.chat.id) + ".jpg")))
-            logger.success("decrypting done...")
+            logger.success("Decrypting done")
     except Exception as e:
-        bot.send_message(message.chat.id, "a bit error")
+        bot.send_message(message.chat.id, "Ошибка! Возможно вы отправили не тот файли и т.д.")
         logger.error(f"{e}")
     finally:
         os.remove(str(message.chat.id) + ".jpg")

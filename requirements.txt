@@ -1,0 +1,6 @@
+numpy
+pillow
+cryptography
+loguru
+pytelegrambotapi
+dotenv

@@ -19,6 +19,7 @@ logger.info("Start bot")
 TOKEN = config.TELEGRAM_BOT_TOKEN
 TEMP_DIR = Path(config.TEMP_DIR_PATH)
 KEY_FILE = Path(config.KEY_FILE_PATH)
+ADMIN_CHAT_ID = config.ADMIN_CHAT_ID
 
 bot = telebot.TeleBot(TOKEN)
 TEMP_DIR.mkdir(exist_ok=True)
@@ -42,6 +43,11 @@ def remove_file(path):
         pass
 
 
+@bot.message_handler(commands=["start"])
+def start(message: telebot.types.Message):
+    bot.send_message(message.chat.id, f"Привет, {message.from_user.first_name}!\nЯ бот, который шифрует и расшифровывает данные в изображениях.\n\n" +
+                     "Для шифровки отправь мне фото с подписью текста.\nДля расшифровки отправь мне изображение файлом!")
+
 # ----------------- Обработка документов -----------------
 @bot.message_handler(content_types=["document"])
 def handle_document(message: telebot.types.Message):
@@ -49,7 +55,7 @@ def handle_document(message: telebot.types.Message):
     outimg_file = None
     try:
         bot.send_message(message.chat.id, "Принят файл")
-        logger.info(f"{message.from_user.username}: document '{message.document.file_name}'")
+        logger.info(f"@{message.from_user.username}: document '{message.document.file_name}'")
 
         file_info = bot.get_file(message.document.file_id)
         data = bot.download_file(file_info.file_path)
@@ -72,8 +78,10 @@ def handle_document(message: telebot.types.Message):
             bot.send_message(message.chat.id, decrypted_text)
             logger.success("Decrypting done")
     except Exception as e:
-        bot.send_message(message.chat.id, f"Ошибка! {e}")
-        logger.error(f"{e}")
+        bot.send_message(message.chat.id, f"Ошибка!")
+        error_message_str = f"==== REPORT ====\n\n@{message.from_user.username}\n'{message.text}'\n\n---- Error ----\n{e.__class__.__name__}: {e.args}"
+        bot.send_message(ADMIN_CHAT_ID, error_message_str)
+        logger.error(error_message_str)
     finally:
         if temp_file:
             remove_file(temp_file)
@@ -92,7 +100,7 @@ def handle_photo(message: telebot.types.Message):
 
         temp_file = save_temp_file(data, f"{message.chat.id}.jpg")
         bot.send_message(message.chat.id, "Принято фото")
-        logger.info(f"{message.from_user.username}: photo '{file_info.file_path}'")
+        logger.info(f"@{message.from_user.username}: photo '{file_info.file_path}'")
 
         if message.caption:
             bot.send_message(message.chat.id, "Шифрую и маскирую данные...")
@@ -110,8 +118,10 @@ def handle_photo(message: telebot.types.Message):
             bot.send_message(message.chat.id, decrypted_text)
             logger.success("Decrypting done")
     except Exception as e:
-        bot.send_message(message.chat.id, f"Ошибка! {e}")
-        logger.error(f"{e}")
+        bot.send_message(message.chat.id, f"Ошибка!")
+        error_message_str = f"==== REPORT ====\n\n@{message.from_user.username}\n'{message.text}'\n\n---- Error ----\n{e.__class__.__name__}: {e.args}"
+        bot.send_message(ADMIN_CHAT_ID, error_message_str)
+        logger.error(error_message_str)
     finally:
         if temp_file:
             remove_file(temp_file)

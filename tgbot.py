@@ -69,7 +69,7 @@ def handle_document(message: telebot.types.Message):
             outimg_file = TEMP_DIR / (message.document.file_name + "_OUT.png")
             err, p = embed_lsb(str(temp_file), str(outimg_file), encrypt_data(message.caption.encode(), key))
             if err:
-                bot.send_message(message.chat.id, f"Сообщение слишком длинное! Ошибка: {round(p*100, 0)}%")
+                bot.send_message(message.chat.id, f"Сообщение слишком длинное! Получилось вместить: {round(p*100, 0)}% текста")
                 logger.error(f"Embed error: {round(p*100, 0)}%")
             else:
                 bot.send_document(message.chat.id, open(outimg_file, "rb"))
@@ -113,7 +113,7 @@ def handle_photo(message: telebot.types.Message):
             outimg_file = TEMP_DIR / f"{message.chat.id}_OUT.png"
             err, p = embed_lsb(str(temp_file), str(outimg_file), encrypt_data(message.caption.encode(), key))
             if err:
-                bot.send_message(message.chat.id, f"Сообщение слишком длинное! Ошибка: {round(p*100, 0)}%")
+                bot.send_message(message.chat.id, f"Сообщение слишком длинное! Получилось вместить: {round(p*100, 0)}% текста")
                 logger.error(f"Embed error: {round(p*100, 0)}%")
             else:
                 bot.send_document(message.chat.id, open(outimg_file, "rb"))

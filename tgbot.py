@@ -45,7 +45,7 @@ def remove_file(path):
 
 @bot.message_handler(commands=["start"])
 def start(message: telebot.types.Message):
-    bot.send_message(message.chat.id, f"Привет, {message.from_user.first_name}!\nЯ бот, который шифрует и расшифровывает данные в изображениях.\n\n" +
+    bot.send_message(message.chat.id, f"Привет, {message.from_user.first_name}!\nЯ умею шифровать и расшифровывать данные в изображениях.\n\n" +
                      "Для шифровки отправь мне фото с подписью текста.\nДля расшифровки отправь мне изображение файлом!")
 
 # ----------------- Обработка документов -----------------
@@ -67,19 +67,23 @@ def handle_document(message: telebot.types.Message):
             logger.info("Encrypting in progress...")
 
             outimg_file = TEMP_DIR / (message.document.file_name + "_OUT.png")
-            embed_lsb(str(temp_file), str(outimg_file), encrypt_data(message.caption.encode(), key))
-            bot.send_document(message.chat.id, open(outimg_file, "rb"))
-            logger.success(f"Encrypting done: {outimg_file}")
+            err, p = embed_lsb(str(temp_file), str(outimg_file), encrypt_data(message.caption.encode(), key))
+            if err:
+                bot.send_message(message.chat.id, "Сообщение слишком длинное! Ошибка: " + round(p*100, 0) + "%")
+                logger.error(f"Embed error: {round(p*100, 0)}%")
+            else:
+                bot.send_document(message.chat.id, open(outimg_file, "rb"))
+                logger.success(f"Encrypting done: {outimg_file}")
         else:
             bot.send_message(message.chat.id, "Расшифровываю данные...")
             logger.info("Decrypting in progress...")
             extracted = extract_lsb(str(temp_file))
-            decrypted_text = decrypt_data(extracted, key).decode(errors="ignore")
+            decrypted_text = decrypt_data(extracted, key).decode()
             bot.send_message(message.chat.id, decrypted_text)
             logger.success("Decrypting done")
     except Exception as e:
-        bot.send_message(message.chat.id, f"Ошибка!")
-        error_message_str = f"==== REPORT ====\n\n@{message.from_user.username}\n'{message.text}'\n\n---- Error ----\n{e.__class__.__name__}: {e.args}"
+        bot.send_message(message.chat.id, "Ошибка!")
+        error_message_str = f"==== REPORT ====\n\n@{message.from_user.username}\n'{message.text if message.text else ""}'\n\n---- Error ----\n{e.__class__.__name__}: {e.args}"
         bot.send_message(ADMIN_CHAT_ID, error_message_str)
         logger.error(error_message_str)
     finally:
@@ -107,19 +111,23 @@ def handle_photo(message: telebot.types.Message):
             logger.info("Encrypting in progress...")
 
             outimg_file = TEMP_DIR / f"{message.chat.id}_OUT.png"
-            embed_lsb(str(temp_file), str(outimg_file), encrypt_data(message.caption.encode(), key))
-            bot.send_document(message.chat.id, open(outimg_file, "rb"))
-            logger.success(f"Encrypting done: {outimg_file}")
+            err, p = embed_lsb(str(temp_file), str(outimg_file), encrypt_data(message.caption.encode(), key))
+            if err:
+                bot.send_message(message.chat.id, "Сообщение слишком длинное! Ошибка: " + round(p*100, 0) + "%")
+                logger.error(f"Embed error: {round(p*100, 0)}%")
+            else:
+                bot.send_document(message.chat.id, open(outimg_file, "rb"))
+                logger.success(f"Encrypting done: {outimg_file}")
         else:
             bot.send_message(message.chat.id, "Расшифровываю данные...")
             logger.info("Decrypting in progress...")
             extracted = extract_lsb(str(temp_file))
-            decrypted_text = decrypt_data(extracted, key).decode(errors="ignore")
+            decrypted_text = decrypt_data(extracted, key).decode()
             bot.send_message(message.chat.id, decrypted_text)
             logger.success("Decrypting done")
     except Exception as e:
-        bot.send_message(message.chat.id, f"Ошибка!")
-        error_message_str = f"==== REPORT ====\n\n@{message.from_user.username}\n'{message.text}'\n\n---- Error ----\n{e.__class__.__name__}: {e.args}"
+        bot.send_message(message.chat.id, "Ошибка!")
+        error_message_str = f"==== REPORT ====\n\n@{message.from_user.username}\n'{message.text if message.text else ""}'\n\n---- Error ----\n{e.__class__.__name__}: {e.args}"
         bot.send_message(ADMIN_CHAT_ID, error_message_str)
         logger.error(error_message_str)
     finally:

@@ -73,24 +73,20 @@ def embed_lsb(image_path, output_path, payload: bytes):
     img = load_image(image_path)
     h, w, _ = img.shape
 
-    # Добавляем размер в первые 4 байта
     payload = struct.pack(">I", len(payload)) + payload
     bits = bytes_to_bits(payload)
     bit_idx = 0
 
     data = img.copy()
+    block_map = []
 
     for y in range(0, h, BLOCK_SIZE):
         for x in range(0, w, BLOCK_SIZE):
-            if bit_idx >= len(bits):
-                break
-
             block = data[y:y+BLOCK_SIZE, x:x+BLOCK_SIZE].copy()
             modified = block.copy()
 
             variance = local_variance(block)
 
-            # адаптивное количество бит
             if variance < VAR_LOW:
                 bits_per_channel = 0
             elif variance < VAR_HIGH:
@@ -99,7 +95,10 @@ def embed_lsb(image_path, output_path, payload: bytes):
                 bits_per_channel = 2
 
             if bits_per_channel == 0:
+                block_map.append(0)
                 continue
+
+            local_bits_count = 0
 
             for i in range(block.shape[0]):
                 for j in range(block.shape[1]):
@@ -110,37 +109,63 @@ def embed_lsb(image_path, output_path, payload: bytes):
                             mask = 0xFF ^ (1 << b)
                             modified[i, j, c] = (int(modified[i, j, c]) & mask) | (int(bits[bit_idx]) << b)
                             bit_idx += 1
+                            local_bits_count += 1
 
-            # проверка RMSE
             if rmse_block(block, modified) <= RMSE_LIMIT:
                 data[y:y+BLOCK_SIZE, x:x+BLOCK_SIZE] = modified
+                block_map.append(bits_per_channel)
             else:
-                # если блок слишком заметен, откатываем
-                bit_idx -= block.shape[0] * block.shape[1] * 3 * bits_per_channel
+                bit_idx -= local_bits_count
+                block_map.append(0)
+
+            if bit_idx >= len(bits):
+                block_map.append(0)
+                continue
+
+    if bit_idx < len(bits):
+        return (1, (len(bits) - bit_idx) / len(bits))
 
     save_image(data, output_path)
 
+    # ---- сохраняем карту блоков ----
+    with open(output_path, "ab") as f:
+        f.write(MAGIC)
+        f.write(struct.pack(">I", len(block_map)))
+        f.write(bytes(block_map))
+
+    return (0, None)
 
 # ----------------- Извлечение данных -----------------
 def extract_lsb(image_path: str):
+    # ---- читаем карту ----
+    with open(image_path, "rb") as f:
+        data = f.read()
+
+    marker = MAGIC
+    idx = data.rfind(marker)
+    if idx == -1:
+        raise ValueError("No map found")
+
+    map_start = idx + len(marker)
+    map_len = struct.unpack(">I", data[map_start:map_start+4])[0]
+    block_map = list(data[map_start+4:map_start+4+map_len])
+
+    # ---- читаем изображение ----
     img = load_image(image_path)
     h, w, _ = img.shape
+
     bits = ""
+    map_idx = 0
 
     for y in range(0, h, BLOCK_SIZE):
         for x in range(0, w, BLOCK_SIZE):
-            block = img[y:y+BLOCK_SIZE, x:x+BLOCK_SIZE]
-            variance = local_variance(block)
-
-            if variance < VAR_LOW:
-                bits_per_channel = 0
-            elif variance < VAR_HIGH:
-                bits_per_channel = 1
-            else:
-                bits_per_channel = 2
+            bits_per_channel = block_map[map_idx]
+            map_idx += 1
 
             if bits_per_channel == 0:
                 continue
+
+            block = img[y:y+BLOCK_SIZE, x:x+BLOCK_SIZE]
 
             for i in range(block.shape[0]):
                 for j in range(block.shape[1]):
@@ -148,13 +173,12 @@ def extract_lsb(image_path: str):
                         for b in range(bits_per_channel):
                             bits += str((block[i, j, c] >> b) & 1)
 
-    # читаем размер данных
+    # ---- читаем размер ----
     size_bytes = bits_to_bytes(bits[:32])
     size = struct.unpack(">I", size_bytes)[0]
 
     payload_bits = bits[32:32 + size * 8]
     return bits_to_bytes(payload_bits)
-
 
 # ----------------- Максимальная вместимость -----------------
 def max_capacity(image_path):

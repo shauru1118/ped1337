@@ -3,7 +3,7 @@ import sys
 import telebot
 from pathlib import Path
 from loguru import logger
-from stego import generate_key, load_key, encrypt_data, decrypt_data, embed_lsb, extract_lsb
+from stego import generate_key, load_key, encrypt_data, decrypt_data, embed_lsb, extract_lsb, get_visualized_lsb_blocks
 import config
 
 
@@ -72,6 +72,9 @@ def handle_document(message: telebot.types.Message):
                 bot.send_message(message.chat.id, f"Сообщение слишком длинное!\nПолучилось вместить лишь {round(p*100)}% текста.")
                 logger.error(f"Embed error: {round(p*100)}%")
             else:
+                images = get_visualized_lsb_blocks(str(outimg_file))
+                for img in images:
+                    bot.send_document(message.chat.id, open(img, "rb"))
                 bot.send_document(message.chat.id, open(outimg_file, "rb"))
                 logger.success(f"Encrypting done: {outimg_file}")
         else:
@@ -116,6 +119,9 @@ def handle_photo(message: telebot.types.Message):
                 bot.send_message(message.chat.id, f"Сообщение слишком длинное!\nПолучилось вместить лишь {round(p*100)}% текста.")
                 logger.error(f"Embed error: {round(p*100)}%")
             else:
+                images = get_visualized_lsb_blocks(str(outimg_file))
+                for img in images:
+                    bot.send_document(message.chat.id, open(img, "rb"))
                 bot.send_document(message.chat.id, open(outimg_file, "rb"))
                 logger.success(f"Encrypting done: {outimg_file}")
         else:

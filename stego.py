@@ -4,6 +4,8 @@ import struct
 import secrets
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 import math
+import config
+from pathlib import Path
 
 MAGIC = b"STEGOv1337"
 
@@ -82,6 +84,11 @@ def embed_lsb(image_path, output_path, payload: bytes):
 
     for y in range(0, h, BLOCK_SIZE):
         for x in range(0, w, BLOCK_SIZE):
+
+            if bit_idx >= len(bits):
+                block_map.append(3)
+                continue
+
             block = data[y:y+BLOCK_SIZE, x:x+BLOCK_SIZE].copy()
             modified = block.copy()
 
@@ -118,9 +125,6 @@ def embed_lsb(image_path, output_path, payload: bytes):
                 bit_idx -= local_bits_count
                 block_map.append(0)
 
-            if bit_idx >= len(bits):
-                block_map.append(0)
-                continue
 
     if bit_idx < len(bits):
         return (1, (len(bits) - bit_idx) / len(bits))
@@ -201,3 +205,100 @@ def max_capacity(image_path):
         "bytes": bits // 8,
         "symbols": bits // 8  # можно грубо приравнять байт к символу
     }
+
+# ----------------- Визуализация -----------------
+def visualize_lsb_blocks(image_path: str, output_path: str, colors:dict, strength=0.25):
+    # ---- читаем карту ----
+    with open(image_path, "rb") as f:
+        raw = f.read()
+
+    marker = MAGIC
+    idx = raw.rfind(marker)
+    if idx == -1:
+        raise ValueError("No map found")
+
+    map_start = idx + len(marker)
+    map_len = struct.unpack(">I", raw[map_start:map_start+4])[0]
+    block_map = list(raw[map_start+4:map_start+4+map_len])
+
+    # ---- читаем изображение ----
+    img = load_image(image_path)
+    h, w, _ = img.shape
+
+    result = img.astype(np.float32)
+    map_idx = 0
+
+    for y in range(0, h, BLOCK_SIZE):
+        for x in range(0, w, BLOCK_SIZE):
+            if map_idx >= len(block_map):
+                raise ValueError("Corrupted block map")
+
+            bits_per_channel = block_map[map_idx]
+            map_idx += 1
+
+            if bits_per_channel not in colors:
+                continue
+
+            block = result[y:y+BLOCK_SIZE, x:x+BLOCK_SIZE]
+
+            target_color = colors[bits_per_channel]
+
+            # мягкое смешивание цвета
+            block[:] = block * (1 - strength) + target_color * strength
+
+    # клип и сохранение
+    result = np.clip(result, 0, 255).astype(np.uint8)
+    save_image(result, output_path)
+    
+
+# цвета (RGB)
+colors = {
+0: np.array([255, 000, 0]),     # 0 красный
+1: np.array([255, 255, 0]),   # 1 жёлтый
+2: np.array([000, 255, 0]),      # 2 зелёный
+3: np.array([000, 000, 0]),     # 3 чёрный
+}
+
+INPUT_IMG_PATH = "IN.jpg"
+OUTPUT_IMG_PATH = "OUT.png"
+
+TOKEN = config.TELEGRAM_BOT_TOKEN
+TEMP_DIR = Path(config.TEMP_DIR_PATH)
+KEY_FILE = Path(config.KEY_FILE_PATH)
+ADMIN_CHAT_ID = config.ADMIN_CHAT_ID
+
+TEMP_DIR.mkdir(exist_ok=True)
+key = load_key(KEY_FILE)
+
+
+embed_lsb(INPUT_IMG_PATH, OUTPUT_IMG_PATH, encrypt_data("Hello world".encode(), key))
+def get_visualized_lsb_blocks(image_path: str):
+    visualize_lsb_blocks(image_path, f"{image_path}_output.png", {
+    0: np.array([000, 000, 0]),
+    1: np.array([255, 255, 0]),
+    2: np.array([000, 255, 0]),
+    3: np.array([000, 000, 0]),
+    }, 0.5)
+
+    visualize_lsb_blocks(image_path, f"{image_path}_output_0.png", {
+    0: np.array([255, 0, 0]),
+    1: np.array([000, 0, 0]),
+    2: np.array([000, 0, 0]),
+    3: np.array([000, 000, 0]),
+    }, 0.5)
+
+    visualize_lsb_blocks(image_path, f"{image_path}_output_1.png", {
+    0: np.array([000, 000, 0]),
+    1: np.array([255, 255, 0]),
+    2: np.array([000, 000, 0]),
+    3: np.array([000, 000, 0]),
+    }, 0.5)
+
+    visualize_lsb_blocks(image_path, f"{image_path}_output_2.png", {
+    0: np.array([0, 000, 0]),
+    1: np.array([0, 000, 0]),
+    2: np.array([0, 255, 0]),
+    3: np.array([000, 000, 0]),
+    }, 0.5)
+
+    return (f"{image_path}_output_0.png", f"{image_path}_output_1.png", f"{image_path}_output_2.png", f"{image_path}_output.png")

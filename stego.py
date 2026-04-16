@@ -274,7 +274,7 @@ key = load_key(KEY_FILE)
 embed_lsb(INPUT_IMG_PATH, OUTPUT_IMG_PATH, encrypt_data("Hello world".encode(), key))
 def get_visualized_lsb_blocks(image_path: str):
     visualize_lsb_blocks(image_path, f"{image_path}_output.png", {
-    0: np.array([000, 000, 0]),
+    0: np.array([255, 000, 0]),
     1: np.array([255, 255, 0]),
     2: np.array([000, 255, 0]),
     3: np.array([000, 000, 0]),

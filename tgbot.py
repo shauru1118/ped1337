@@ -94,6 +94,11 @@ def handle_document(message: telebot.types.Message):
             remove_file(temp_file)
         if outimg_file:
             remove_file(outimg_file)
+        for img in images:
+            if not img:
+                continue
+            if os.path.exists(img):
+                remove_file(img)
 
 
 # ----------------- Обработка фотографий -----------------
@@ -101,6 +106,7 @@ def handle_document(message: telebot.types.Message):
 def handle_photo(message: telebot.types.Message):
     temp_file = None
     outimg_file = None
+    images = None
     try:
         file_info = bot.get_file(message.photo[-1].file_id)
         data = bot.download_file(file_info.file_path)
@@ -141,6 +147,11 @@ def handle_photo(message: telebot.types.Message):
             remove_file(temp_file)
         if outimg_file:
             remove_file(outimg_file)
+        for img in images:
+            if not img:
+                continue
+            if os.path.exists(img):
+                remove_file(img)
 
 
 if __name__ == "__main__":

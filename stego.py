@@ -249,29 +249,7 @@ def visualize_lsb_blocks(image_path: str, output_path: str, colors:dict, strengt
     # клип и сохранение
     result = np.clip(result, 0, 255).astype(np.uint8)
     save_image(result, output_path)
-    
 
-# цвета (RGB)
-colors = {
-0: np.array([255, 000, 0]),     # 0 красный
-1: np.array([255, 255, 0]),   # 1 жёлтый
-2: np.array([000, 255, 0]),      # 2 зелёный
-3: np.array([000, 000, 0]),     # 3 чёрный
-}
-
-INPUT_IMG_PATH = "IN.jpg"
-OUTPUT_IMG_PATH = "OUT.png"
-
-TOKEN = config.TELEGRAM_BOT_TOKEN
-TEMP_DIR = Path(config.TEMP_DIR_PATH)
-KEY_FILE = Path(config.KEY_FILE_PATH)
-ADMIN_CHAT_ID = config.ADMIN_CHAT_ID
-
-TEMP_DIR.mkdir(exist_ok=True)
-key = load_key(KEY_FILE)
-
-
-embed_lsb(INPUT_IMG_PATH, OUTPUT_IMG_PATH, encrypt_data("Hello world".encode(), key))
 def get_visualized_lsb_blocks(image_path: str):
     visualize_lsb_blocks(image_path, f"{image_path}_output.png", {
     0: np.array([255, 000, 0]),
@@ -302,3 +280,4 @@ def get_visualized_lsb_blocks(image_path: str):
     }, 0.5)
 
     return (f"{image_path}_output_0.png", f"{image_path}_output_1.png", f"{image_path}_output_2.png", f"{image_path}_output.png")
+

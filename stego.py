@@ -4,8 +4,6 @@ import struct
 import secrets
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 import math
-import config
-from pathlib import Path
 
 MAGIC = b"STEGOv1337"
 

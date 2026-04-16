@@ -125,7 +125,7 @@ def embed_lsb(image_path, output_path, payload: bytes):
 
 
     if bit_idx < len(bits):
-        return (1, (len(bits) - bit_idx) / len(bits))
+        return (1, bit_idx / len(bits))
 
     save_image(data, output_path)
 

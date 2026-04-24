@@ -1,5 +1,4 @@
 import flask
-import threading
 from tgbot import bot
 
 app = flask.Flask(__name__)
@@ -13,6 +12,4 @@ def root():
     return res
 
 
-bot_th = threading.Thread(target=bot.infinity_polling)
-bot_th.start()
-bot_th.join()
+bot.infinity_polling()

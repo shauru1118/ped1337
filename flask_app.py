@@ -1,4 +1,6 @@
 import flask
+import threading
+from tgbot import bot
 
 app = flask.Flask(__name__)
 
@@ -11,8 +13,6 @@ def root():
     return res
 
 
-if __name__ == "__main":
-    app.run("0.0.0.0", port=7777, debug=True)
-
-
-from tgbot import bot
+bot_th = threading.Thread(target=bot.infinity_polling)
+bot_th.start()
+bot_th.join()

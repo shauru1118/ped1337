@@ -182,6 +182,6 @@ def handle_photo(message: telebot.types.Message):
                 remove_file(img)
 
 
-# if __name__ == "__main__":
-logger.info("Bot polling...")
-bot.infinity_polling()
+if __name__ == "__main__":
+    logger.info("Bot polling...")
+    bot.infinity_polling()

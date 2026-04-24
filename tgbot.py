@@ -3,7 +3,15 @@ import sys
 import telebot
 from pathlib import Path
 from loguru import logger
-from stego import generate_key, load_key, encrypt_data, decrypt_data, embed_lsb, extract_lsb, get_visualized_lsb_blocks
+from stego.funcs import (
+    generate_key,
+    load_key,
+    encrypt_data,
+    decrypt_data,
+    embed_lsb,
+    extract_lsb,
+    get_visualized_lsb_blocks,
+)
 import config
 
 
@@ -12,7 +20,7 @@ logger.add(
     sys.stdout,
     level="INFO",
     colorize=True,
-    format="<level>{level}\t| {message}</level>"
+    format="<level>{level}\t| {message}</level>",
 )
 logger.info("Start bot")
 
@@ -45,8 +53,12 @@ def remove_file(path):
 
 @bot.message_handler(commands=["start"])
 def start(message: telebot.types.Message):
-    bot.send_message(message.chat.id, f"Привет, {message.from_user.first_name}!\nЯ умею шифровать и расшифровывать данные в изображениях.\n\n" +
-                     "Для шифровки отправь мне фото с подписью текста.\nДля расшифровки отправь мне изображение файлом!")
+    bot.send_message(
+        message.chat.id,
+        f"Привет, {message.from_user.first_name}!\nЯ умею шифровать и расшифровывать данные в изображениях.\n\n"
+        + "Для шифровки отправь мне фото с подписью текста.\nДля расшифровки отправь мне изображение файлом!",
+    )
+
 
 # ----------------- Обработка документов -----------------
 @bot.message_handler(content_types=["document"])
@@ -55,7 +67,9 @@ def handle_document(message: telebot.types.Message):
     outimg_file = None
     try:
         bot.send_message(message.chat.id, "Принят файл")
-        logger.info(f"@{message.from_user.username}: document '{message.document.file_name}'")
+        logger.info(
+            f"@{message.from_user.username}: document '{message.document.file_name}'"
+        )
 
         file_info = bot.get_file(message.document.file_id)
         data = bot.download_file(file_info.file_path)
@@ -67,10 +81,17 @@ def handle_document(message: telebot.types.Message):
             logger.info("Encrypting in progress...")
 
             outimg_file = TEMP_DIR / (message.document.file_name + "_OUT.png")
-            err, p = embed_lsb(str(temp_file), str(outimg_file), encrypt_data(message.caption.encode(), key))
+            err, p = embed_lsb(
+                str(temp_file),
+                str(outimg_file),
+                encrypt_data(message.caption.encode(), key),
+            )
             if err:
-                bot.send_message(message.chat.id, f"Сообщение слишком длинное!\nПолучилось вместить лишь {round(p*100)}% текста.")
-                logger.error(f"Embed error: {round(p*100)}%")
+                bot.send_message(
+                    message.chat.id,
+                    f"Сообщение слишком длинное!\nПолучилось вместить лишь {round(p * 100)}% текста.",
+                )
+                logger.error(f"Embed error: {round(p * 100)}%")
             else:
                 images = get_visualized_lsb_blocks(str(outimg_file))
                 for img in images:
@@ -86,7 +107,7 @@ def handle_document(message: telebot.types.Message):
             logger.success("Decrypting done")
     except Exception as e:
         bot.send_message(message.chat.id, "Ошибка!")
-        error_message_str = f"==== REPORT ====\n\n@{message.from_user.username}\n'{message.text if message.text else ""}'\n\n---- Error ----\n{e.__class__.__name__}: {e.args}"
+        error_message_str = f"==== REPORT ====\n\n@{message.from_user.username}\n'{message.text if message.text else ''}'\n\n---- Error ----\n{e.__class__.__name__}: {e.args}"
         bot.send_message(ADMIN_CHAT_ID, error_message_str)
         logger.error(error_message_str)
     finally:
@@ -120,10 +141,17 @@ def handle_photo(message: telebot.types.Message):
             logger.info("Encrypting in progress...")
 
             outimg_file = TEMP_DIR / f"{message.chat.id}_OUT.png"
-            err, p = embed_lsb(str(temp_file), str(outimg_file), encrypt_data(message.caption.encode(), key))
+            err, p = embed_lsb(
+                str(temp_file),
+                str(outimg_file),
+                encrypt_data(message.caption.encode(), key),
+            )
             if err:
-                bot.send_message(message.chat.id, f"Сообщение слишком длинное!\nПолучилось вместить лишь {round(p*100)}% текста.")
-                logger.error(f"Embed error: {round(p*100)}%")
+                bot.send_message(
+                    message.chat.id,
+                    f"Сообщение слишком длинное!\nПолучилось вместить лишь {round(p * 100)}% текста.",
+                )
+                logger.error(f"Embed error: {round(p * 100)}%")
             else:
                 images = get_visualized_lsb_blocks(str(outimg_file))
                 for img in images:
@@ -139,7 +167,7 @@ def handle_photo(message: telebot.types.Message):
             logger.success("Decrypting done")
     except Exception as e:
         bot.send_message(message.chat.id, "Ошибка!")
-        error_message_str = f"==== REPORT ====\n\n@{message.from_user.username}\n'{message.text if message.text else ""}'\n\n---- Error ----\n{e.__class__.__name__}: {e.args}"
+        error_message_str = f"==== REPORT ====\n\n@{message.from_user.username}\n'{message.text if message.text else ''}'\n\n---- Error ----\n{e.__class__.__name__}: {e.args}"
         bot.send_message(ADMIN_CHAT_ID, error_message_str)
         logger.error(error_message_str)
     finally:
@@ -154,7 +182,6 @@ def handle_photo(message: telebot.types.Message):
                 remove_file(img)
 
 
-if __name__ == "__main__":
-    logger.info("Bot polling...")
-    bot.infinity_polling()
-
+# if __name__ == "__main__":
+logger.info("Bot polling...")
+bot.infinity_polling()

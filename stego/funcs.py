@@ -9,8 +9,8 @@ MAGIC = b"STEGOv1337"
 
 BLOCK_SIZE = 4  # размер блока для анализа дисперсии
 RMSE_LIMIT = 3.5  # максимально допустимая ошибка
-VAR_LOW = 20     # порог низкой дисперсии
-VAR_HIGH = 100   # порог высокой дисперсии
+VAR_LOW = 20  # порог низкой дисперсии
+VAR_HIGH = 100  # порог высокой дисперсии
 
 
 def generate_key(path):
@@ -45,7 +45,7 @@ def bytes_to_bits(data: bytes):
 
 
 def bits_to_bytes(bits: str):
-    return bytes(int(bits[i:i+8], 2) for i in range(0, len(bits), 8))
+    return bytes(int(bits[i : i + 8], 2) for i in range(0, len(bits), 8))
 
 
 # ----------------- Изображения -----------------
@@ -61,7 +61,7 @@ def save_image(arr, path):
 # ----------------- RMSE и дисперсия -----------------
 def rmse_block(original, modified):
     diff = original.astype(np.float32) - modified.astype(np.float32)
-    return math.sqrt(np.mean(diff ** 2))
+    return math.sqrt(np.mean(diff**2))
 
 
 def local_variance(block):
@@ -82,12 +82,11 @@ def embed_lsb(image_path, output_path, payload: bytes):
 
     for y in range(0, h, BLOCK_SIZE):
         for x in range(0, w, BLOCK_SIZE):
-
             if bit_idx >= len(bits):
                 block_map.append(3)
                 continue
 
-            block = data[y:y+BLOCK_SIZE, x:x+BLOCK_SIZE].copy()
+            block = data[y : y + BLOCK_SIZE, x : x + BLOCK_SIZE].copy()
             modified = block.copy()
 
             variance = local_variance(block)
@@ -112,17 +111,18 @@ def embed_lsb(image_path, output_path, payload: bytes):
                             if bit_idx >= len(bits):
                                 break
                             mask = 0xFF ^ (1 << b)
-                            modified[i, j, c] = (int(modified[i, j, c]) & mask) | (int(bits[bit_idx]) << b)
+                            modified[i, j, c] = (int(modified[i, j, c]) & mask) | (
+                                int(bits[bit_idx]) << b
+                            )
                             bit_idx += 1
                             local_bits_count += 1
 
             if rmse_block(block, modified) <= RMSE_LIMIT:
-                data[y:y+BLOCK_SIZE, x:x+BLOCK_SIZE] = modified
+                data[y : y + BLOCK_SIZE, x : x + BLOCK_SIZE] = modified
                 block_map.append(bits_per_channel)
             else:
                 bit_idx -= local_bits_count
                 block_map.append(0)
-
 
     if bit_idx < len(bits):
         return (1, bit_idx / len(bits))
@@ -137,6 +137,7 @@ def embed_lsb(image_path, output_path, payload: bytes):
 
     return (0, None)
 
+
 # ----------------- Извлечение данных -----------------
 def extract_lsb(image_path: str):
     # ---- читаем карту ----
@@ -149,8 +150,8 @@ def extract_lsb(image_path: str):
         raise ValueError("No map found")
 
     map_start = idx + len(marker)
-    map_len = struct.unpack(">I", data[map_start:map_start+4])[0]
-    block_map = list(data[map_start+4:map_start+4+map_len])
+    map_len = struct.unpack(">I", data[map_start : map_start + 4])[0]
+    block_map = list(data[map_start + 4 : map_start + 4 + map_len])
 
     # ---- читаем изображение ----
     img = load_image(image_path)
@@ -167,7 +168,7 @@ def extract_lsb(image_path: str):
             if bits_per_channel == 0:
                 continue
 
-            block = img[y:y+BLOCK_SIZE, x:x+BLOCK_SIZE]
+            block = img[y : y + BLOCK_SIZE, x : x + BLOCK_SIZE]
 
             for i in range(block.shape[0]):
                 for j in range(block.shape[1]):
@@ -179,8 +180,9 @@ def extract_lsb(image_path: str):
     size_bytes = bits_to_bytes(bits[:32])
     size = struct.unpack(">I", size_bytes)[0]
 
-    payload_bits = bits[32:32 + size * 8]
+    payload_bits = bits[32 : 32 + size * 8]
     return bits_to_bytes(payload_bits)
+
 
 # ----------------- Максимальная вместимость -----------------
 def max_capacity(image_path):
@@ -189,7 +191,7 @@ def max_capacity(image_path):
     bits = 0
     for y in range(0, h, BLOCK_SIZE):
         for x in range(0, w, BLOCK_SIZE):
-            block = img[y:y+BLOCK_SIZE, x:x+BLOCK_SIZE]
+            block = img[y : y + BLOCK_SIZE, x : x + BLOCK_SIZE]
             var = local_variance(block)
             if var < VAR_LOW:
                 bits_per_channel = 0
@@ -201,11 +203,14 @@ def max_capacity(image_path):
     return {
         "bits": bits,
         "bytes": bits // 8,
-        "symbols": bits // 8  # можно грубо приравнять байт к символу
+        "symbols": bits // 8,  # можно грубо приравнять байт к символу
     }
 
+
 # ----------------- Визуализация -----------------
-def visualize_lsb_blocks(image_path: str, output_path: str, colors:dict, strength=0.25):
+def visualize_lsb_blocks(
+    image_path: str, output_path: str, colors: dict, strength=0.25
+):
     # ---- читаем карту ----
     with open(image_path, "rb") as f:
         raw = f.read()
@@ -216,8 +221,8 @@ def visualize_lsb_blocks(image_path: str, output_path: str, colors:dict, strengt
         raise ValueError("No map found")
 
     map_start = idx + len(marker)
-    map_len = struct.unpack(">I", raw[map_start:map_start+4])[0]
-    block_map = list(raw[map_start+4:map_start+4+map_len])
+    map_len = struct.unpack(">I", raw[map_start : map_start + 4])[0]
+    block_map = list(raw[map_start + 4 : map_start + 4 + map_len])
 
     # ---- читаем изображение ----
     img = load_image(image_path)
@@ -237,7 +242,7 @@ def visualize_lsb_blocks(image_path: str, output_path: str, colors:dict, strengt
             if bits_per_channel not in colors:
                 continue
 
-            block = result[y:y+BLOCK_SIZE, x:x+BLOCK_SIZE]
+            block = result[y : y + BLOCK_SIZE, x : x + BLOCK_SIZE]
 
             target_color = colors[bits_per_channel]
 
@@ -248,34 +253,59 @@ def visualize_lsb_blocks(image_path: str, output_path: str, colors:dict, strengt
     result = np.clip(result, 0, 255).astype(np.uint8)
     save_image(result, output_path)
 
+
 def get_visualized_lsb_blocks(image_path: str):
-    visualize_lsb_blocks(image_path, f"{image_path}_output.png", {
-    0: np.array([255, 000, 0]),
-    1: np.array([255, 255, 0]),
-    2: np.array([000, 255, 0]),
-    3: np.array([000, 000, 0]),
-    }, 0.5)
+    visualize_lsb_blocks(
+        image_path,
+        f"{image_path}_output.png",
+        {
+            0: np.array([255, 000, 0]),
+            1: np.array([255, 255, 0]),
+            2: np.array([000, 255, 0]),
+            3: np.array([000, 000, 0]),
+        },
+        0.5,
+    )
 
-    visualize_lsb_blocks(image_path, f"{image_path}_output_0.png", {
-    0: np.array([255, 0, 0]),
-    1: np.array([000, 0, 0]),
-    2: np.array([000, 0, 0]),
-    3: np.array([000, 000, 0]),
-    }, 0.5)
+    visualize_lsb_blocks(
+        image_path,
+        f"{image_path}_output_0.png",
+        {
+            0: np.array([255, 0, 0]),
+            1: np.array([000, 0, 0]),
+            2: np.array([000, 0, 0]),
+            3: np.array([000, 000, 0]),
+        },
+        0.5,
+    )
 
-    visualize_lsb_blocks(image_path, f"{image_path}_output_1.png", {
-    0: np.array([000, 000, 0]),
-    1: np.array([255, 255, 0]),
-    2: np.array([000, 000, 0]),
-    3: np.array([000, 000, 0]),
-    }, 0.5)
+    visualize_lsb_blocks(
+        image_path,
+        f"{image_path}_output_1.png",
+        {
+            0: np.array([000, 000, 0]),
+            1: np.array([255, 255, 0]),
+            2: np.array([000, 000, 0]),
+            3: np.array([000, 000, 0]),
+        },
+        0.5,
+    )
 
-    visualize_lsb_blocks(image_path, f"{image_path}_output_2.png", {
-    0: np.array([0, 000, 0]),
-    1: np.array([0, 000, 0]),
-    2: np.array([0, 255, 0]),
-    3: np.array([000, 000, 0]),
-    }, 0.5)
+    visualize_lsb_blocks(
+        image_path,
+        f"{image_path}_output_2.png",
+        {
+            0: np.array([0, 000, 0]),
+            1: np.array([0, 000, 0]),
+            2: np.array([0, 255, 0]),
+            3: np.array([000, 000, 0]),
+        },
+        0.5,
+    )
 
-    return (f"{image_path}_output_0.png", f"{image_path}_output_1.png", f"{image_path}_output_2.png", f"{image_path}_output.png")
-
+    return (
+        f"{image_path}_output_0.png",
+        f"{image_path}_output_1.png",
+        f"{image_path}_output_2.png",
+        f"{image_path}_output.png",
+    )

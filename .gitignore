@@ -4,11 +4,11 @@
 *test*
 companys
 *.KEY
-*.key
+key.key
 *.jpg
 *.png
 videos
-*ai*
+ai/
 *venv*
 backup
 temp

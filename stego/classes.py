@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import numpy as np
 import os
 from PIL import Image
@@ -149,3 +150,7 @@ class Stego:
             f.write(bytes(block_map))
 
         return (0, None)
+=======
+"""Backward compatibility module forwarding to stego OOP package."""
+from stego import Stego, Crypter, KeyManager, DataCompressor, DataEncryptor, StegoEngine
+>>>>>>> 045529e (v0.2.0 done app; OOP code)

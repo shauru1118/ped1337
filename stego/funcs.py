@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import numpy as np
 from PIL import Image
 import struct
@@ -309,3 +310,17 @@ def get_visualized_lsb_blocks(image_path: str):
         f"{image_path}_output_2.png",
         f"{image_path}_output.png",
     )
+=======
+"""Backward compatibility module forwarding to stego OOP package."""
+from stego import (
+    generate_key,
+    load_key,
+    encrypt_data,
+    decrypt_data,
+    embed_lsb,
+    extract_lsb,
+    max_capacity,
+    get_visualized_lsb_blocks,
+    visualize_lsb_blocks,
+)
+>>>>>>> 045529e (v0.2.0 done app; OOP code)

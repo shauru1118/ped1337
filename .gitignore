@@ -10,6 +10,8 @@ companys
 videos
 *ai*
 *venv*
+backup
+temp
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

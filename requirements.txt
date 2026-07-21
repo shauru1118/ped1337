@@ -4,4 +4,3 @@ cryptography
 loguru
 pytelegrambotapi
 dotenv
-flask

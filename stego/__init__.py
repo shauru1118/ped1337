@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-from .funcs import *
-from .classes import Stego, Crypter
-=======
 from .config import StegoConfig
 from .facade import StegoFacade
 from .factory import StegoEngineFactory
@@ -75,4 +71,3 @@ __all__ = [
     "get_visualized_lsb_blocks",
     "visualize_lsb_blocks",
 ]
->>>>>>> 045529e (v0.2.0 done app; OOP code)

@@ -7,16 +7,6 @@ from typing import Dict, List, Optional, Tuple
 import telebot
 from telebot import types
 from loguru import logger
-<<<<<<< HEAD
-from stego.funcs import (
-    generate_key,
-    load_key,
-    encrypt_data,
-    decrypt_data,
-    embed_lsb,
-    extract_lsb,
-    get_visualized_lsb_blocks,
-=======
 from stego import (
     StegoFacade,
     StegoError,
@@ -24,40 +14,16 @@ from stego import (
     CorruptedBlockMapError,
     TransformationError,
     InvalidKeyError,
->>>>>>> 045529e (v0.2.0 done app; OOP code)
 )
 import config
 
 
-<<<<<<< HEAD
-logger.remove()
-logger.add(
-    sys.stdout,
-    level="INFO",
-    colorize=True,
-    format="<level>{level}\t| {message}</level>",
-)
-logger.info("Start bot")
-
-TOKEN = config.TELEGRAM_BOT_TOKEN
-TEMP_DIR = Path(config.TEMP_DIR_PATH)
-KEY_FILE = Path(config.KEY_FILE_PATH)
-ADMIN_CHAT_ID = config.ADMIN_CHAT_ID
-
-bot = telebot.TeleBot(TOKEN)
-TEMP_DIR.mkdir(exist_ok=True)
-if not os.path.exists(KEY_FILE):
-    generate_key(KEY_FILE)
-    logger.info(f"Generated new key: {KEY_FILE}")
-key = load_key(KEY_FILE)
-=======
 class UserState(Enum):
     IDLE = auto()
     WAITING_MASK_IMAGE = auto()
     WAITING_MASK_TEXT = auto()
     WAITING_UNMASK_IMAGE = auto()
     WAITING_IMAGE_ACTION = auto()
->>>>>>> 045529e (v0.2.0 done app; OOP code)
 
 
 @dataclass
@@ -100,27 +66,6 @@ class UserSessionManager:
         return cover_path, pending_path
 
 
-<<<<<<< HEAD
-@bot.message_handler(commands=["start"])
-def start(message: telebot.types.Message):
-    bot.send_message(
-        message.chat.id,
-        f"Привет, {message.from_user.first_name}!\nЯ умею шифровать и расшифровывать данные в изображениях.\n\n"
-        + "Для шифровки отправь мне фото с подписью текста.\nДля расшифровки отправь мне изображение файлом!",
-    )
-
-
-# ----------------- Обработка документов -----------------
-@bot.message_handler(content_types=["document"])
-def handle_document(message: telebot.types.Message):
-    temp_file = None
-    outimg_file = None
-    try:
-        bot.send_message(message.chat.id, "Принят файл")
-        logger.info(
-            f"@{message.from_user.username}: document '{message.document.file_name}'"
-        )
-=======
 class StegoBotService:
     """Enterprise Telegram Bot Service with FSM dialog, Inline Keyboard smart photo flow, and action logging."""
 
@@ -129,7 +74,6 @@ class StegoBotService:
         self.temp_dir = Path(config.TEMP_DIR_PATH or "./temp")
         self.key_file_path = str(Path(config.KEY_FILE_PATH or "./key.key"))
         self.admin_chat_id = config.ADMIN_CHAT_ID
->>>>>>> 045529e (v0.2.0 done app; OOP code)
 
         self.temp_dir.mkdir(exist_ok=True)
         self.facade = StegoFacade()
@@ -244,7 +188,7 @@ class StegoBotService:
         self.bot.send_message(
             message.chat.id,
             "🛑 Операция отменена. Состояние сброшено.\n"
-            "Вы можете отправить фото или использовать /mask или /unmask.",
+            "Используйте /mask для маскировки или /unmask для демаскировки.",
             parse_mode="Markdown",
         )
 
@@ -300,48 +244,6 @@ class StegoBotService:
                 parse_mode="Markdown",
             )
 
-<<<<<<< HEAD
-            outimg_file = TEMP_DIR / (message.document.file_name + "_OUT.png")
-            err, p = embed_lsb(
-                str(temp_file),
-                str(outimg_file),
-                encrypt_data(message.caption.encode(), key),
-            )
-            if err:
-                bot.send_message(
-                    message.chat.id,
-                    f"Сообщение слишком длинное!\nПолучилось вместить лишь {round(p * 100)}% текста.",
-                )
-                logger.error(f"Embed error: {round(p * 100)}%")
-            else:
-                images = get_visualized_lsb_blocks(str(outimg_file))
-                for img in images:
-                    bot.send_document(message.chat.id, open(img, "rb"))
-                bot.send_document(message.chat.id, open(outimg_file, "rb"))
-                logger.success(f"Encrypting done: {outimg_file}")
-        else:
-            bot.send_message(message.chat.id, "Расшифровываю данные...")
-            logger.info("Decrypting in progress...")
-            extracted = extract_lsb(str(temp_file))
-            decrypted_text = decrypt_data(extracted, key).decode()
-            bot.send_message(message.chat.id, decrypted_text)
-            logger.success("Decrypting done")
-    except Exception as e:
-        bot.send_message(message.chat.id, "Ошибка!")
-        error_message_str = f"==== REPORT ====\n\n@{message.from_user.username}\n'{message.text if message.text else ''}'\n\n---- Error ----\n{e.__class__.__name__}: {e.args}"
-        bot.send_message(ADMIN_CHAT_ID, error_message_str)
-        logger.error(error_message_str)
-    finally:
-        if temp_file:
-            remove_file(temp_file)
-        if outimg_file:
-            remove_file(outimg_file)
-        for img in images:
-            if not img:
-                continue
-            if os.path.exists(img):
-                remove_file(img)
-=======
         else:
             # Smart Photo Flow: Direct image upload without prior command
             self.log_user(
@@ -352,7 +254,6 @@ class StegoBotService:
                 temp_path = self._download_media_to_path(message, f"pending_{user_id}")
                 self.session_manager.set_pending_image(user_id, temp_path)
                 self.session_manager.set_state(user_id, UserState.WAITING_IMAGE_ACTION)
->>>>>>> 045529e (v0.2.0 done app; OOP code)
 
                 markup = types.InlineKeyboardMarkup(row_width=1)
                 b_mask = types.InlineKeyboardButton(
@@ -388,53 +289,6 @@ class StegoBotService:
         self.log_user(user, f"clicked inline button: {action}")
         self.bot.answer_callback_query(call.id)
 
-<<<<<<< HEAD
-            outimg_file = TEMP_DIR / f"{message.chat.id}_OUT.png"
-            err, p = embed_lsb(
-                str(temp_file),
-                str(outimg_file),
-                encrypt_data(message.caption.encode(), key),
-            )
-            if err:
-                bot.send_message(
-                    message.chat.id,
-                    f"Сообщение слишком длинное!\nПолучилось вместить лишь {round(p * 100)}% текста.",
-                )
-                logger.error(f"Embed error: {round(p * 100)}%")
-            else:
-                images = get_visualized_lsb_blocks(str(outimg_file))
-                for img in images:
-                    bot.send_document(message.chat.id, open(img, "rb"))
-                bot.send_document(message.chat.id, open(outimg_file, "rb"))
-                logger.success(f"Encrypting done: {outimg_file}")
-        else:
-            bot.send_message(message.chat.id, "Расшифровываю данные...")
-            logger.info("Decrypting in progress...")
-            extracted = extract_lsb(str(temp_file))
-            decrypted_text = decrypt_data(extracted, key).decode()
-            bot.send_message(message.chat.id, decrypted_text)
-            logger.success("Decrypting done")
-    except Exception as e:
-        bot.send_message(message.chat.id, "Ошибка!")
-        error_message_str = f"==== REPORT ====\n\n@{message.from_user.username}\n'{message.text if message.text else ''}'\n\n---- Error ----\n{e.__class__.__name__}: {e.args}"
-        bot.send_message(ADMIN_CHAT_ID, error_message_str)
-        logger.error(error_message_str)
-    finally:
-        if temp_file:
-            remove_file(temp_file)
-        if outimg_file:
-            remove_file(outimg_file)
-        for img in images:
-            if not img:
-                continue
-            if os.path.exists(img):
-                remove_file(img)
-
-
-if __name__ == "__main__":
-    logger.info("Bot polling...")
-    bot.infinity_polling()
-=======
         if (
             session.state != UserState.WAITING_IMAGE_ACTION
             or not session.pending_image_path
@@ -740,4 +594,3 @@ def main():
 
 if __name__ == "__main__":
     main()
->>>>>>> 045529e (v0.2.0 done app; OOP code)

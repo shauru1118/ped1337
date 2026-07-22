@@ -2,6 +2,7 @@ import os
 import sys
 import uuid
 import base64
+import time
 import threading
 from pathlib import Path
 from typing import Optional
@@ -54,9 +55,36 @@ def run_telegram_bot():
         print(f"Error starting Telegram Bot: {e}", file=sys.stderr)
 
 
+def periodic_cleanup_task():
+    """Periodically cleans up old temporary files in temp/ and vis_ files in static/."""
+    while True:
+        try:
+            now = time.time()
+            cutoff = now - 300  # 5 minutes
+            if TEMP_DIR.exists():
+                for item in TEMP_DIR.iterdir():
+                    if item.is_file():
+                        if item.stat().st_mtime < cutoff:
+                            try:
+                                item.unlink()
+                            except Exception:
+                                pass
+            if STATIC_DIR.exists():
+                for item in STATIC_DIR.iterdir():
+                    if item.is_file() and item.name.startswith("vis_"):
+                        if item.stat().st_mtime < cutoff:
+                            try:
+                                item.unlink()
+                            except Exception:
+                                pass
+        except Exception as e:
+            print(f"Error during periodic cleanup: {e}", file=sys.stderr)
+        time.sleep(60)
+
+
 @app.on_event("startup")
 def startup_event():
-    """Launches Telegram Bot thread on startup."""
+    """Launches Telegram Bot thread and cleanup task on startup."""
     try:
         gen_path = Path("/home/shauru/.gemini/antigravity-ide/brain/0b18a14a-c961-4277-a5c9-ef660bb78820/website_avatar_1784740548319.png")
         target_path = STATIC_DIR / "avatar.png"
@@ -65,6 +93,10 @@ def startup_event():
             shutil.copy(str(gen_path), str(target_path))
     except Exception as e:
         print(f"Error copying avatar: {e}")
+
+    # Start periodic cleanup thread
+    cleanup_thread = threading.Thread(target=periodic_cleanup_task, daemon=True)
+    cleanup_thread.start()
 
     if config.TELEGRAM_BOT_TOKEN:
         t = threading.Thread(target=run_telegram_bot, daemon=True)

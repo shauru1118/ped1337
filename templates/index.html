@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ped1337 SteganoSuite — Безопасное встраивание данных в изображения</title>
+    <link rel="icon" type="image/png" href="/static/avatar.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="glow-bg"></div>
+    <div class="glow-bg-secondary"></div>
+
+    <header class="app-header">
+        <div class="logo" style="display: flex; align-items: center; gap: 12px;">
+            <img src="/static/avatar.png" alt="Avatar" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #00ff66; filter: drop-shadow(0 0 8px rgba(0, 255, 102, 0.4));">
+            <h1>Ped1337 <span class="accent-text">SteganoSuite</span></h1>
+        </div>
+        <p class="subtitle">Адаптивная LSB-стеганография & Шифрование Кузнечик (ГОСТ 34.12 CBC)</p>
+    </header>
+
+    <main class="app-container">
+        <!-- Navigation Tabs -->
+        <nav class="tab-nav">
+            <button class="tab-btn active" id="tab-embed-btn" onclick="switchTab('embed')">
+                <span class="tab-icon">🔒</span> Внедрение (Embed)
+            </button>
+            <button class="tab-btn" id="tab-extract-btn" onclick="switchTab('extract')">
+                <span class="tab-icon">🔓</span> Извлечение (Extract)
+            </button>
+            <button class="tab-btn" id="tab-verify-btn" onclick="switchTab('verify')">
+                <span class="tab-icon">🛡️</span> Подлинность (Verify)
+            </button>
+            <button class="tab-btn" id="tab-capacity-btn" onclick="switchTab('capacity')">
+                <span class="tab-icon">📊</span> Вместимость (Capacity)
+            </button>
+            <button class="tab-btn" id="tab-steganalysis-btn" onclick="switchTab('steganalysis')">
+                <span class="tab-icon">📈</span> Стегоанализ (Analysis)
+            </button>
+        </nav>
+
+        <!-- Tab Panels Container -->
+        <div class="tab-content">
+            <!-- EMBED PANEL -->
+            <section class="tab-panel active" id="panel-embed">
+                <form id="embed-form">
+                    <div class="grid-layout">
+                        <!-- Step 1: Cover Image -->
+                        <div class="form-section">
+                            <h3 class="section-title">1. Картинка-обложка (PNG/JPG)</h3>
+                            <div class="drop-zone" id="drop-zone-cover">
+                                <div class="drop-zone-content">
+                                    <span class="drop-icon">🖼️</span>
+                                    <p class="drop-text">Перетащите картинку или <span class="browse-link">выберите</span></p>
+                                    <span class="drop-hint">До 50 MB, форматы PNG, JPG, JPEG</span>
+                                </div>
+                                <input type="file" id="input-cover" name="cover" accept="image/*" required class="file-input">
+                            </div>
+                            <div class="preview-container" id="preview-cover-container">
+                                <img src="" alt="Cover Preview" id="preview-cover">
+                                <button type="button" class="remove-btn" onclick="clearInput('cover')">✕</button>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Secret Payload -->
+                        <div class="form-section">
+                            <h3 class="section-title">2. Скрываемые данные</h3>
+                            <div class="payload-tabs">
+                                <div class="payload-tab active" onclick="switchPayloadMode('text')">Текст</div>
+                                <div class="payload-tab" onclick="switchPayloadMode('file')">Файл</div>
+                            </div>
+
+                            <!-- Text input wrapper -->
+                            <div class="payload-input-wrapper active" id="payload-text-wrapper">
+                                <textarea id="input-payload-text" name="text" placeholder="Введите секретное сообщение здесь..."></textarea>
+                            </div>
+
+                            <!-- File input wrapper -->
+                            <div class="payload-input-wrapper" id="payload-file-wrapper">
+                                <div class="drop-zone" id="drop-zone-payload">
+                                    <div class="drop-zone-content">
+                                        <span class="drop-icon">📁</span>
+                                        <p class="drop-text">Перетащите скрываемый файл или <span class="browse-link">выберите</span></p>
+                                        <span class="drop-hint">Любой тип файла, лимитировано размером картинки</span>
+                                    </div>
+                                    <input type="file" id="input-payload-file" name="payload_file" class="file-input">
+                                </div>
+                                <div class="preview-container" id="preview-payload-container">
+                                    <div class="file-info-box">
+                                        <span class="file-icon">📄</span>
+                                        <span class="file-name" id="preview-payload-name">Filename.docx</span>
+                                    </div>
+                                    <button type="button" class="remove-btn" onclick="clearInput('payload')">✕</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Key & Parameters -->
+                    <div class="key-section">
+                        <div class="key-input-group">
+                            <label for="input-key">Ключ шифрования Кузнечик (ГОСТ 34.12, 32 байта Base64, необязательно):</label>
+                            <div class="input-with-button">
+                                <input type="text" id="input-key" name="key" placeholder="Использовать стандартный системный ключ">
+                                <button type="button" class="action-btn-secondary" onclick="generateNewKey()">Сгенерировать</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="embed-submit-btn">
+                        <span class="btn-text">🔒 Замаскировать и скачать стего-контейнер</span>
+                        <div class="loader" id="embed-loader"></div>
+                    </button>
+                </form>
+
+                <!-- Embed LSB Visual Heatmaps results -->
+                <div class="results-container" id="visualization-gallery-wrapper" style="margin-top: 30px;">
+                    <h3>Анализ заполненности LSB по картам дисперсии</h3>
+                    <p class="vis-hint">Показывает распределение бит по блокам 4x4. Чем ярче цвет, тем больше бит встроено в канал.</p>
+                    <div class="vis-gallery">
+                        <div class="vis-item">
+                            <span class="vis-label">Сводная карта (RGB)</span>
+                            <img src="" id="vis-full" alt="LSB RGB Map">
+                        </div>
+                        <div class="vis-item">
+                            <span class="vis-label">Карта низких частот (1 bit/channel)</span>
+                            <img src="" id="vis-0" alt="LSB 0 Map">
+                        </div>
+                        <div class="vis-item">
+                            <span class="vis-label">Карта средних частот (2 bits/channel)</span>
+                            <img src="" id="vis-1" alt="LSB 1 Map">
+                        </div>
+                        <div class="vis-item">
+                            <span class="vis-label">Карта высоких частот (3 bits/channel)</span>
+                            <img src="" id="vis-2" alt="LSB 2 Map">
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- EXTRACT PANEL -->
+            <section class="tab-panel" id="panel-extract">
+                <form id="extract-form">
+                    <div class="grid-layout single-col">
+                        <div class="form-section">
+                            <h3 class="section-title">Стего-изображение (PNG)</h3>
+                            <div class="drop-zone" id="drop-zone-stego">
+                                <div class="drop-zone-content">
+                                    <span class="drop-icon">🔍</span>
+                                    <p class="drop-text">Перетащите стего-картинку или <span class="browse-link">выберите</span></p>
+                                    <span class="drop-hint">Должна содержать скрытый контейнер</span>
+                                </div>
+                                <input type="file" id="input-stego" name="stego" accept="image/png" required class="file-input">
+                            </div>
+                            <div class="preview-container" id="preview-stego-container">
+                                <img src="" alt="Stego Preview" id="preview-stego">
+                                <button type="button" class="remove-btn" onclick="clearInput('stego')">✕</button>
+                            </div>
+                        </div>
+
+                        <div class="key-section no-border">
+                            <div class="key-input-group">
+                                <label for="extract-key">Ключ шифрования Кузнечик (ГОСТ 34.12, 32 байта Base64, необязательно):</label>
+                                <input type="text" id="extract-key" name="key" placeholder="Использовать стандартный системный ключ">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="extract-submit-btn">
+                        <span class="btn-text">🔓 Извлечь скрытые данные</span>
+                        <div class="loader" id="extract-loader"></div>
+                    </button>
+                </form>
+
+                <!-- EXTRACT RESULTS -->
+                <div class="results-container" id="result-extract-wrapper" style="margin-top: 30px;">
+                    <h3>🎉 Успешно извлечено:</h3>
+                    <div id="extracted-text-box" class="result-text-box">
+                        <pre><code id="extracted-text-content">Скрытое сообщение...</code></pre>
+                    </div>
+                    <div id="extracted-file-box" class="result-file-box">
+                        <span class="file-box-icon">🎁</span>
+                        <div class="file-box-details">
+                            <span class="file-box-name" id="extracted-filename">document.pdf</span>
+                            <span class="file-box-hint">Готов к сохранению</span>
+                        </div>
+                        <a href="" id="extracted-download-link" download class="download-button-link">Скачать файл</a>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VERIFY PANEL -->
+            <section class="tab-panel" id="panel-verify">
+                <form id="verify-form">
+                    <div class="grid-layout single-col">
+                        <div class="form-section">
+                            <h3 class="section-title">Стего-изображение (PNG)</h3>
+                            <div class="drop-zone" id="drop-zone-verify">
+                                <div class="drop-zone-content">
+                                    <span class="drop-icon">🛡️</span>
+                                    <p class="drop-text">Перетащите стего-картинку или <span class="browse-link">выберите</span></p>
+                                    <span class="drop-hint">Для проверки целостности имитовставки</span>
+                                </div>
+                                <input type="file" id="input-verify" name="stego" accept="image/png" required class="file-input">
+                            </div>
+                            <div class="preview-container" id="preview-verify-container">
+                                <img src="" alt="Verify Preview" id="preview-verify">
+                                <button type="button" class="remove-btn" onclick="clearInput('verify')">✕</button>
+                            </div>
+                        </div>
+
+                        <div class="key-section no-border">
+                            <div class="key-input-group">
+                                <label for="verify-key">Ключ шифрования Кузнечик (ГОСТ 34.12, 32 байта Base64, необязательно):</label>
+                                <input type="text" id="verify-key" name="key" placeholder="Использовать стандартный системный ключ">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="verify-submit-btn">
+                        <span class="btn-text">🛡️ Проверить подлинность данных</span>
+                        <div class="loader" id="verify-loader"></div>
+                    </button>
+                </form>
+
+                <!-- VERIFY RESULTS -->
+                <div class="results-container" id="result-verify-wrapper" style="margin-top: 30px;">
+                    <h3>Результат проверки подлинности:</h3>
+                    <div id="verify-success-box" class="verification-badge success">
+                        <span class="badge-icon">🛡️</span>
+                        <div class="badge-details">
+                            <span class="badge-title">Подлинность подтверждена!</span>
+                            <span class="badge-desc">Имитовставка ГОСТ Р 34.13-2015 верна. Данные целостны, не изменялись и соответствуют отправителю.</span>
+                            <span class="badge-payload-type" id="verify-payload-info"></span>
+                        </div>
+                    </div>
+                    <div id="verify-fail-box" class="verification-badge fail">
+                        <span class="badge-icon">⚠️</span>
+                        <div class="badge-details">
+                            <span class="badge-title">Обнаружено вмешательство!</span>
+                            <span class="badge-desc">Имитовставка ГОСТ не совпадает. Данные были изменены, повреждены или указан неверный ключ шифрования.</span>
+                            <span class="badge-payload-type" id="verify-fail-reason"></span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CAPACITY PANEL -->
+            <section class="tab-panel" id="panel-capacity">
+                <form id="capacity-form">
+                    <div class="grid-layout single-col">
+                        <div class="form-section">
+                            <h3 class="section-title">Картинка-обложка (PNG/JPG)</h3>
+                            <div class="drop-zone" id="drop-zone-capacity">
+                                <div class="drop-zone-content">
+                                    <span class="drop-icon">📊</span>
+                                    <p class="drop-text">Перетащите картинку или <span class="browse-link">выберите</span></p>
+                                    <span class="drop-hint">Для оценки доступного объема встраивания</span>
+                                </div>
+                                <input type="file" id="input-capacity" name="cover" accept="image/*" required class="file-input">
+                            </div>
+                            <div class="preview-container" id="preview-capacity-container">
+                                <img src="" alt="Capacity Preview" id="preview-capacity">
+                                <button type="button" class="remove-btn" onclick="clearInput('capacity')">✕</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="capacity-submit-btn">
+                        <span class="btn-text">📊 Рассчитать вместимость</span>
+                        <div class="loader" id="capacity-loader"></div>
+                    </button>
+                </form>
+
+                <!-- CAPACITY RESULTS -->
+                <div class="results-container" id="result-capacity-wrapper" style="margin-top: 30px;">
+                    <h3>Доступный объем для внедрения:</h3>
+                    <div class="capacity-stats-grid">
+                        <div class="capacity-stat-card">
+                            <span class="stat-icon">📦</span>
+                            <span class="stat-value" id="capacity-val-bytes">0 KB</span>
+                            <span class="stat-label">Макс. размер файла</span>
+                        </div>
+                        <div class="capacity-stat-card">
+                            <span class="stat-icon">📝</span>
+                            <span class="stat-value" id="capacity-val-chars">0</span>
+                            <span class="stat-label">Букв / Символов</span>
+                        </div>
+                        <div class="capacity-stat-card">
+                            <span class="stat-icon">💬</span>
+                            <span class="stat-value" id="capacity-val-words">0</span>
+                            <span class="stat-label">Слов (приблизительно)</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- STEGANALYSIS PANEL -->
+            <section class="tab-panel" id="panel-steganalysis">
+                <form id="steganalysis-form">
+                    <div class="grid-layout single-col">
+                        <div class="form-section">
+                            <h3 class="section-title">Изображение для анализа (PNG/JPG)</h3>
+                            <div class="drop-zone" id="drop-zone-steganalysis">
+                                <div class="drop-zone-content">
+                                    <span class="drop-icon">📈</span>
+                                    <p class="drop-text">Перетащите картинку или <span class="browse-link">выберите</span></p>
+                                    <span class="drop-hint">Для проведения Хи-квадрат стегоанализа LSB</span>
+                                </div>
+                                <input type="file" id="input-steganalysis" name="image" accept="image/*" required class="file-input">
+                            </div>
+                            <div class="preview-container" id="preview-steganalysis-container">
+                                <img src="" alt="Steganalysis Preview" id="preview-steganalysis">
+                                <button type="button" class="remove-btn" onclick="clearInput('steganalysis')">✕</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="steganalysis-submit-btn">
+                        <span class="btn-text">📈 Выполнить стегоанализ Хи-квадрат</span>
+                        <div class="loader" id="steganalysis-loader"></div>
+                    </button>
+                </form>
+
+                <!-- STEGANALYSIS RESULTS -->
+                <div class="results-container" id="result-steganalysis-wrapper" style="margin-top: 30px;">
+                    <h3>Статистика стегоанализа:</h3>
+                    
+                    <div class="steganalysis-verdict-box" id="steganalysis-verdict">
+                        <span class="verdict-badge-icon" id="verdict-icon">❓</span>
+                        <div class="verdict-details">
+                            <span class="verdict-title" id="verdict-title">Расчет вероятностей...</span>
+                            <span class="verdict-desc" id="verdict-desc">Ожидание результатов с сервера.</span>
+                        </div>
+                    </div>
+
+                    <div class="chart-container" style="position: relative; height:480px; width:100%; margin-top:20px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-color); border-radius: 16px; padding: 15px;">
+                        <canvas id="stego-chart"></canvas>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="app-footer">
+        <p>&copy; 2026 Ped1337 SteganoSuite. Защищено современными методами стеганографии.</p>
+    </footer>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

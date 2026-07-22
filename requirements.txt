@@ -4,3 +4,9 @@ cryptography
 loguru
 pytelegrambotapi
 dotenv
+pypdf
+python-docx
+fastapi
+uvicorn
+python-multipart
+jinja2

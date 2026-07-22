@@ -1,1 +1,1 @@
-worker: python3 tgbot.py
+web: uvicorn web_app:app --host 0.0.0.0 --port $PORT

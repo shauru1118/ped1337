@@ -265,6 +265,13 @@ body {
     border: 1px solid var(--border-color);
     margin-top: 10px;
     max-height: 250px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.preview-container:hover {
+    border-color: var(--accent);
+    box-shadow: 0 0 15px rgba(0, 242, 254, 0.1);
 }
 
 .preview-container.active {

@@ -12,6 +12,14 @@ document.addEventListener('DOMContentLoaded', () => {
     setupDropZone('drop-zone-capacity', 'input-capacity', handleCapacitySelect);
     setupDropZone('drop-zone-steganalysis', 'input-steganalysis', handleSteganalysisSelect);
 
+    // Setup preview zones for drop-on-preview interaction
+    setupPreviewZone('preview-cover-container', 'input-cover', handleCoverSelect);
+    setupPreviewZone('preview-payload-container', 'input-payload-file', handlePayloadFileSelect);
+    setupPreviewZone('preview-stego-container', 'input-stego', handleStegoSelect);
+    setupPreviewZone('preview-verify-container', 'input-verify', handleVerifySelect);
+    setupPreviewZone('preview-capacity-container', 'input-capacity', handleCapacitySelect);
+    setupPreviewZone('preview-steganalysis-container', 'input-steganalysis', handleSteganalysisSelect);
+
     // Form Submissions
     document.getElementById('embed-form').addEventListener('submit', handleEmbedSubmit);
     document.getElementById('extract-form').addEventListener('submit', handleExtractSubmit);
@@ -72,6 +80,38 @@ function setupDropZone(zoneId, inputId, onFileSelect) {
     input.addEventListener('change', () => {
         if (input.files.length > 0) {
             onFileSelect(input.files[0]);
+        }
+    });
+}
+
+// Setup interactive preview zones for seamless replacement
+function setupPreviewZone(containerId, inputId, onFileSelect) {
+    const container = document.getElementById(containerId);
+    const input = document.getElementById(inputId);
+
+    if (!container || !input) return;
+
+    container.addEventListener('click', (e) => {
+        // If they clicked the remove button, let clearInput handle it
+        if (e.target.classList.contains('remove-btn')) return;
+        input.click();
+    });
+
+    container.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        container.classList.add('dragover');
+    });
+
+    container.addEventListener('dragleave', () => {
+        container.classList.remove('dragover');
+    });
+
+    container.addEventListener('drop', (e) => {
+        e.preventDefault();
+        container.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0) {
+            input.files = e.dataTransfer.files;
+            onFileSelect(e.dataTransfer.files[0]);
         }
     });
 }

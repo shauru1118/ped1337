@@ -859,4 +859,116 @@ input[type="text"]:focus {
     color: var(--text-secondary);
 }
 
+/* Stego Chart Container */
+.stego-chart-container {
+    position: relative;
+    height: 480px;
+    width: 100%;
+    margin-top: 20px;
+    background: rgba(0,0,0,0.2);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 15px;
+}
+
+/* Comprehensive Mobile Viewport Optimizations */
+@media (max-width: 768px) {
+    .stego-chart-container {
+        height: 320px;
+        padding: 10px;
+    }
+    
+    .tab-nav {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 8px;
+        gap: 8px;
+        justify-content: flex-start;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; /* Firefox */
+    }
+    
+    .tab-nav::-webkit-scrollbar {
+        display: none; /* Safari and Chrome */
+    }
+    
+    .tab-btn {
+        padding: 10px 18px;
+        font-size: 0.9rem;
+        flex-shrink: 0;
+        border-radius: 30px;
+    }
+
+    .app-header {
+        padding: 20px 15px;
+        text-align: center;
+    }
+    
+    .logo {
+        justify-content: center;
+        gap: 8px;
+    }
+    
+    .logo img {
+        width: 34px !important;
+        height: 34px !important;
+    }
+    
+    .logo h1 {
+        font-size: 1.5rem;
+    }
+    
+    .subtitle {
+        font-size: 0.85rem;
+        margin-top: 6px;
+    }
+    
+    .app-container {
+        padding: 8px;
+    }
+    
+    .tab-panel {
+        padding: 20px 15px;
+        border-radius: 18px;
+    }
+    
+    .results-container {
+        padding: 20px 15px;
+        border-radius: 18px;
+        margin-top: 20px;
+    }
+    
+    .capacity-stats-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    
+    .capacity-stat-card {
+        padding: 18px 15px;
+    }
+    
+    .stat-value {
+        font-size: 1.4rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .vis-gallery {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .verification-badge, .steganalysis-verdict-box {
+        flex-direction: column;
+        text-align: center;
+        gap: 12px;
+        padding: 15px;
+    }
+    
+    .badge-icon, .verdict-badge-icon {
+        font-size: 2rem !important;
+    }
+}
+
 

@@ -66,27 +66,28 @@ class StegoCLIApplication:
 
     def build_parser(self) -> argparse.ArgumentParser:
         parser = argparse.ArgumentParser(
-            description="Enterprise Steganography CLI Application (AES-256-GCM + Zlib + Adaptive LSB)"
+            description=(
+                "Steganography CLI (Kuznyechik CBC + GOST MAC + Zlib + Adaptive LSB)"
+            )
         )
         subparsers = parser.add_subparsers(
             title="commands", dest="command", required=True
         )
 
-        k = subparsers.add_parser("keygen", help="Generate a new 256-bit AES key")
+        k = subparsers.add_parser("keygen", help="Generate a new 256-bit key")
         k.add_argument("key", help="Path to save key file")
 
         e = subparsers.add_parser("encrypt", help="Encrypt and embed file into image")
         e.add_argument("image", help="Input cover image (PNG/JPG)")
         e.add_argument("input", help="Input file to encrypt and hide")
         e.add_argument("output", help="Output stego image file (PNG)")
-        e.add_argument("key", help="AES key file path")
+        e.add_argument("key", help="Key file path")
 
         d = subparsers.add_parser(
             "decrypt", help="Extract and decrypt data from stego image"
         )
         d.add_argument("image", help="Input stego image (PNG)")
-        d.add_argument("key", help="AES key file path")
-
+        d.add_argument("key", help="Key file path")
         c = subparsers.add_parser(
             "capacity", help="Check maximum embedding capacity of an image"
         )

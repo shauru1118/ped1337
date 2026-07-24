@@ -17,6 +17,16 @@ class gost2015:
     Provides 128-bit block encryption and decryption using a 256-bit key.
     """
 
+    _multtable_cache = None
+
+    @classmethod
+    def _load_multtable(cls):
+        if cls._multtable_cache is None:
+            tables_path = join(dirname(__file__), "gost_tables")
+            with open(tables_path, "rb") as f:
+                cls._multtable_cache = pickle.load(f)
+        return cls._multtable_cache
+
     # S-box (Pi table) permutation values
     PI: List[int] = [
         252, 238, 221, 17, 207, 110, 49, 22, 251, 196, 250, 218, 35, 197, 4, 77,
@@ -104,10 +114,8 @@ class gost2015:
         if len(key_list) != 32:
             raise ValueError("Kuznyechik key must be exactly 32 bytes (256 bits) long.")
 
-        # Precomputed tables for Galois field GF(2^8) arithmetic
-        tables_path = join(dirname(__file__), 'gost_tables')
-        with open(tables_path, 'rb') as f:
-            self.multtable = pickle.load(f)
+        # Precomputed tables for Galois field GF(2^8) arithmetic (cached class-wide)
+        self.multtable = self._load_multtable()
 
         # Initialize round keys schedule
         initial_keys = [key_list[:16], key_list[16:]]

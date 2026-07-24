@@ -5,12 +5,12 @@ let currentPayloadMode = 'text';
 
 // Setup dropzones on window load
 document.addEventListener('DOMContentLoaded', () => {
-    setupDropZone('drop-zone-cover', 'input-cover', handleCoverSelect);
-    setupDropZone('drop-zone-payload', 'input-payload-file', handlePayloadFileSelect);
-    setupDropZone('drop-zone-stego', 'input-stego', handleStegoSelect);
-    setupDropZone('drop-zone-verify', 'input-verify', handleVerifySelect);
-    setupDropZone('drop-zone-capacity', 'input-capacity', handleCapacitySelect);
-    setupDropZone('drop-zone-steganalysis', 'input-steganalysis', handleSteganalysisSelect);
+    setupDropZone('drop-zone-cover', 'input-cover', handleCoverSelect, 'preview-cover-container');
+    setupDropZone('drop-zone-payload', 'input-payload-file', handlePayloadFileSelect, 'preview-payload-container');
+    setupDropZone('drop-zone-stego', 'input-stego', handleStegoSelect, 'preview-stego-container');
+    setupDropZone('drop-zone-verify', 'input-verify', handleVerifySelect, 'preview-verify-container');
+    setupDropZone('drop-zone-capacity', 'input-capacity', handleCapacitySelect, 'preview-capacity-container');
+    setupDropZone('drop-zone-steganalysis', 'input-steganalysis', handleSteganalysisSelect, 'preview-steganalysis-container');
 
     // Setup preview zones for drop-on-preview interaction
     setupPreviewZone('preview-cover-container', 'input-cover', handleCoverSelect);
@@ -27,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('capacity-form').addEventListener('submit', handleCapacitySubmit);
     document.getElementById('steganalysis-form').addEventListener('submit', handleSteganalysisSubmit);
 });
-
 // Switch active tabs
 function switchTab(tab) {
     currentTab = tab;
@@ -50,32 +49,57 @@ function switchPayloadMode(mode) {
     document.getElementById(`payload-${mode}-wrapper`).classList.add('active');
 }
 
-// Setup drag and drop zones
-function setupDropZone(zoneId, inputId, onFileSelect) {
+function assignInputFile(input, file) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+}
+
+function bindFileDropTarget(target, input, onFileSelect) {
+    if (!target) return;
+
+    target.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        target.classList.add('dragover');
+    });
+
+    target.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        if (!target.contains(e.relatedTarget)) {
+            target.classList.remove('dragover');
+        }
+    });
+
+    target.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        target.classList.remove('dragover');
+        const file = e.dataTransfer.files?.[0];
+        if (!file) return;
+        assignInputFile(input, file);
+        onFileSelect(file);
+    });
+}
+
+// Setup drag and drop zones (also allow replacing via drop on preview)
+function setupDropZone(zoneId, inputId, onFileSelect, previewId = null) {
     const zone = document.getElementById(zoneId);
     const input = document.getElementById(inputId);
+    const preview = previewId ? document.getElementById(previewId) : null;
 
     if (!zone || !input) return;
 
     zone.addEventListener('click', () => input.click());
+    bindFileDropTarget(zone, input, onFileSelect);
+    bindFileDropTarget(preview, input, onFileSelect);
 
-    zone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        zone.classList.add('dragover');
-    });
-
-    zone.addEventListener('dragleave', () => {
-        zone.classList.remove('dragover');
-    });
-
-    zone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        zone.classList.remove('dragover');
-        if (e.dataTransfer.files.length > 0) {
-            input.files = e.dataTransfer.files;
-            onFileSelect(e.dataTransfer.files[0]);
-        }
-    });
+    if (preview) {
+        preview.addEventListener('click', (e) => {
+            if (e.target.closest('.remove-btn')) return;
+            input.click();
+        });
+    }
 
     input.addEventListener('change', () => {
         if (input.files.length > 0) {
@@ -260,7 +284,7 @@ async function handleEmbedSubmit(e) {
     if (key) formData.append('key', key);
 
     if (currentPayloadMode === 'text') {
-        const text = document.getElementById('input-text').value;
+        const text = document.getElementById('input-payload-text').value.trim();
         if (!text) {
             alert('Пожалуйста, введите текст сообщения.');
             toggleLoader('embed-submit-btn', 'embed-loader', false);
@@ -562,37 +586,88 @@ async function handleSteganalysisSubmit(e) {
 
         verdictBox.className = 'steganalysis-verdict-box'; // reset classes
 
-        const r_p = data.results.red.p_values[data.results.red.p_values.length - 1];
-        const g_p = data.results.green.p_values[data.results.green.p_values.length - 1];
-        const b_p = data.results.blue.p_values[data.results.blue.p_values.length - 1];
+        const formatP = (value) => {
+            if (value === null || value === undefined || Number.isNaN(Number(value))) {
+                return 'н/д';
+            }
+            const num = Number(value);
+            if (num <= 0) {
+                return '0';
+            }
+            if (num < 1e-4) {
+                return num.toExponential(2);
+            }
+            return num.toFixed(4);
+        };
+        const formatE = (value) => {
+            if (value === null || value === undefined || Number.isNaN(Number(value))) {
+                return 'н/д';
+            }
+            return Number(value).toFixed(4);
+        };
+        const lastFinite = (series) => {
+            if (!Array.isArray(series)) return null;
+            for (let i = series.length - 1; i >= 0; i -= 1) {
+                const v = series[i];
+                if (v !== null && v !== undefined && !Number.isNaN(Number(v))) {
+                    return Number(v);
+                }
+            }
+            return null;
+        };
+        const peakFinite = (series) => {
+            if (!Array.isArray(series)) return null;
+            let peak = null;
+            for (const v of series) {
+                if (v === null || v === undefined || Number.isNaN(Number(v))) continue;
+                const num = Number(v);
+                if (peak === null || num > peak) peak = num;
+            }
+            return peak;
+        };
 
-        const r_e = data.results.red.entropies[data.results.red.entropies.length - 1];
-        const g_e = data.results.green.entropies[data.results.green.entropies.length - 1];
-        const b_e = data.results.blue.entropies[data.results.blue.entropies.length - 1];
+        // Verdict uses FINAL p (100% pixels). Chart shows the progressive Westfeld curve.
+        const r_p = data.channels?.red?.p_value ?? lastFinite(data.results.red.p_values);
+        const g_p = data.channels?.green?.p_value ?? lastFinite(data.results.green.p_values);
+        const b_p = data.channels?.blue?.p_value ?? lastFinite(data.results.blue.p_values);
+
+        const r_peak = peakFinite(data.results.red.p_values);
+        const g_peak = peakFinite(data.results.green.p_values);
+        const b_peak = peakFinite(data.results.blue.p_values);
+
+        const r_e = data.channels?.red?.entropy ?? lastFinite(data.results.red.entropies);
+        const g_e = data.channels?.green?.entropy ?? lastFinite(data.results.green.entropies);
+        const b_e = data.channels?.blue?.entropy ?? lastFinite(data.results.blue.entropies);
+
+        const avgP = data.avg_p ?? ((r_p + g_p + b_p) / 3);
+        const maxP = data.max_p ?? Math.max(r_p, g_p, b_p);
+        const maxEntropy = data.max_entropy ?? Math.max(r_e, g_e, b_e);
+        const curvePeak = Math.max(r_peak ?? 0, g_peak ?? 0, b_peak ?? 0);
 
         const statsHtml = `<br><span style="font-size: 0.9rem; display: block; margin-top: 10px; opacity: 0.95; line-height: 1.6;">
-            📊 <b>Показатели вероятности LSB (p-value):</b><br>
-            🔴 Красный канал (R): p-value = <b>${r_p.toFixed(4)}</b> (энтропия LSB: ${r_e.toFixed(4)})<br>
-            🟢 Зеленый канал (G): p-value = <b>${g_p.toFixed(4)}</b> (энтропия LSB: ${g_e.toFixed(4)})<br>
-            🔵 Синий канал (B): p-value = <b>${b_p.toFixed(4)}</b> (энтропия LSB: ${b_e.toFixed(4)})<br>
-            🌐 <b>Общий показатель p-value:</b> средний = <b>${((r_p + g_p + b_p) / 3).toFixed(4)}</b>, максимальный = <b>${Math.max(r_p, g_p, b_p).toFixed(4)}</b>
+            📊 <b>Итоговый χ² p-value при 100% пикселей</b> (Westfeld: высокий ≈ случайные LSB ≈ подозрение на стего):<br>
+            🔴 R: итог = <b>${formatP(r_p)}</b>, пик на кривой = <b>${formatP(r_peak)}</b> (энтропия LSB: ${formatE(r_e)})<br>
+            🟢 G: итог = <b>${formatP(g_p)}</b>, пик на кривой = <b>${formatP(g_peak)}</b> (энтропия LSB: ${formatE(g_e)})<br>
+            🔵 B: итог = <b>${formatP(b_p)}</b>, пик на кривой = <b>${formatP(b_peak)}</b> (энтропия LSB: ${formatE(b_e)})<br>
+            🌐 <b>Итог по каналам:</b> средний = <b>${formatP(avgP)}</b>, макс. итог = <b>${formatP(maxP)}</b>, макс. пик кривой = <b>${formatP(curvePeak)}</b><br>
+            <span style="opacity: 0.85;">График ниже — прогрессивный скан (слева мало пикселей, справа 100%). Вердикт смотрит только на правый край (итог).</span>
         </span>`;
 
         if (data.verdict === 'detected') {
             verdictBox.classList.add('detected');
             verdictIcon.innerText = '⚠️';
             verdictTitle.innerText = 'Обнаружено скрытое сообщение!';
-            verdictDesc.innerHTML = 'В LSB-битах изображения найдено присутствие структурированных/псевдослучайных данных с максимальной энтропией LSB: ' + data.max_entropy.toFixed(4) + '. Высокая вероятность скрытого контейнера.' + statsHtml;
+            verdictDesc.innerHTML = 'Итоговый χ² p-value высокий: LSB-плоскость выглядит псевдослучайной (типичный признак внедрения). Макс. энтропия LSB: ' + formatE(maxEntropy) + '.' + statsHtml;
         } else if (data.verdict === 'anomaly') {
             verdictBox.classList.add('anomaly');
             verdictIcon.innerText = '⚠️';
             verdictTitle.innerText = 'Незначительные аномалии / Подозрение на стего';
-            verdictDesc.innerHTML = 'Некоторые статистические показатели отклоняются от нормы. Это часто встречается в отредактированных изображениях или при частичном внедрении в LSB-плоскость. Максимальная энтропия: ' + data.max_entropy.toFixed(4) + '.' + statsHtml;
+            verdictDesc.innerHTML = 'Итоговый χ² p-value повышен относительно естественного изображения. Возможны частичное внедрение или сильная постобработка. Макс. энтропия LSB: ' + formatE(maxEntropy) + '.' + statsHtml;
         } else {
             verdictBox.classList.add('clean');
             verdictIcon.innerText = '🛡️';
             verdictTitle.innerText = 'Внедрение не обнаружено';
-            verdictDesc.innerHTML = 'Распределение младших значащих бит (LSB) соответствует естественному, недеформированному изображению (Максимальная энтропия: ' + data.max_entropy.toFixed(4) + ').' + statsHtml;
+            verdictDesc.innerHTML = 'Итоговый χ² p-value низкий: пары значений PoV выглядят естественно структурированными (не как после LSB-embedding). Макс. энтропия LSB: ' + formatE(maxEntropy) + '.' + statsHtml;
         }
 
         // Draw / Update Chart
@@ -616,7 +691,8 @@ async function handleSteganalysisSubmit(e) {
                         borderWidth: 2.5,
                         fill: false,
                         tension: 0.3,
-                        pointRadius: 1.5
+                        pointRadius: 1.5,
+                        spanGaps: true
                     },
                     {
                         label: 'Зеленый канал (p-value)',
@@ -626,7 +702,8 @@ async function handleSteganalysisSubmit(e) {
                         borderWidth: 2.5,
                         fill: false,
                         tension: 0.3,
-                        pointRadius: 1.5
+                        pointRadius: 1.5,
+                        spanGaps: true
                     },
                     {
                         label: 'Синий канал (p-value)',
@@ -636,7 +713,8 @@ async function handleSteganalysisSubmit(e) {
                         borderWidth: 2.5,
                         fill: false,
                         tension: 0.3,
-                        pointRadius: 1.5
+                        pointRadius: 1.5,
+                        spanGaps: true
                     }
                 ]
             },
@@ -655,14 +733,14 @@ async function handleSteganalysisSubmit(e) {
                     x: {
                         grid: { color: 'rgba(255, 255, 255, 0.05)' },
                         ticks: { color: '#8aa1b9', font: { family: 'Outfit', size: 9 } },
-                        title: { display: true, text: 'Процент просканированных пикселей', color: '#f0f4f8', font: { family: 'Outfit', weight: 'bold', size: 11 } }
+                        title: { display: true, text: 'Прогресс скана → (вердикт = правый край / 100%)', color: '#f0f4f8', font: { family: 'Outfit', weight: 'bold', size: 11 } }
                     },
                     y: {
                         min: 0,
-                        max: 1.1,
+                        max: 1,
                         grid: { color: 'rgba(255, 255, 255, 0.05)' },
                         ticks: { color: '#8aa1b9', font: { family: 'Outfit', size: 9 } },
-                        title: { display: true, text: 'Вероятность p', color: '#f0f4f8', font: { family: 'Outfit', weight: 'bold', size: 11 } }
+                        title: { display: true, text: 'χ² p-value (прогрессивно)', color: '#f0f4f8', font: { family: 'Outfit', weight: 'bold', size: 11 } }
                     }
                 }
             }

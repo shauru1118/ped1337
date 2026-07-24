@@ -83,4 +83,4 @@ class StegoVisualizer(IVisualizer):
             0.5,
         )
 
-        return (out_0, out_1, out_2, out_full)
+        return (out_full, out_0, out_1, out_2)

@@ -1,10 +1,13 @@
-from typing import Dict, Tuple, Optional
-from ..interfaces.stego import IStegoEngine
-from ..interfaces.image import IImageAdapter, IBlockMapHandler
+from typing import Dict, Optional, Tuple
+
+import numpy as np
+
 from ..config import StegoConfig
-from .variance_analyzer import VarianceAnalyzer
+from ..interfaces.image import IBlockMapHandler, IImageAdapter
+from ..interfaces.stego import IStegoEngine
 from .lsb_embedder import LSBEmbedder
 from .lsb_extractor import LSBExtractor
+from .variance_analyzer import VarianceAnalyzer
 
 
 class StegoEngine(IStegoEngine):
@@ -26,11 +29,19 @@ class StegoEngine(IStegoEngine):
     def calculate_capacity(self, image_path: str) -> Dict[str, int]:
         image = self.image_adapter.load(image_path)
         h, w, _ = image.shape
-        total_bits = 0
         bs = self.config.block_size
+        bpc_grid, nh, nw = self.analyzer.compute_bpc_grid(image)
 
-        for y in range(0, h, bs):
+        total_bits = int(bpc_grid.astype(np.int64, copy=False).sum()) * bs * bs * 3
+
+        # Partial edge blocks (right / bottom strips) — keep exact semantics.
+        for y in range(nh * bs, h, bs):
             for x in range(0, w, bs):
+                block = image[y : y + bs, x : x + bs]
+                bpc = self.analyzer.determine_bits_per_channel(block)
+                total_bits += block.shape[0] * block.shape[1] * 3 * bpc
+        for y in range(0, nh * bs, bs):
+            for x in range(nw * bs, w, bs):
                 block = image[y : y + bs, x : x + bs]
                 bpc = self.analyzer.determine_bits_per_channel(block)
                 total_bits += block.shape[0] * block.shape[1] * 3 * bpc

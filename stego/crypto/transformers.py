@@ -1,7 +1,7 @@
 import secrets
 import zlib
 from typing import List
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
 from ..interfaces.crypto import IPayloadTransformer
 from ..exceptions import TransformationError, InvalidKeyError
 

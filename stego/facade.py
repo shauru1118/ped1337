@@ -18,13 +18,13 @@ class StegoFacade:
         self.key_manager = StegoEngineFactory.create_key_manager()
 
     def generate_key_file(self, path: str) -> bytes:
-        """Generates and saves a new 256-bit AES key to specified path."""
+        """Generates and saves a new 256-bit key to specified path."""
         key = self.key_manager.generate()
         self.key_manager.save(path, key)
         return key
 
     def load_key(self, path: str) -> bytes:
-        """Loads a 256-bit AES key from path."""
+        """Loads a 256-bit key from path."""
         return self.key_manager.load(path)
 
     def embed_raw(

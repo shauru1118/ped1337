@@ -1,0 +1,36 @@
+[project]
+name = "ped1337"
+version = "0.4.0"
+description = "Adaptive LSB steganography with Kuznyechik (GOST R 34.12-2015 CBC) + Zlib"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "jinja2>=3.1",
+    "loguru>=0.7",
+    "numpy>=2.0",
+    "pillow>=10.0",
+    "pypdf>=5.0",
+    "pytelegrambotapi>=4.20",
+    "python-docx>=1.1",
+    "python-dotenv>=1.0",
+    "python-multipart>=0.0.9",
+    "uvicorn[standard]>=0.30",
+]
+
+[project.scripts]
+ped1337 = "app.__main__:main"
+ped1337-bot = "bot.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app", "bot", "stego"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"stego/crypto/kuznechik/gost_tables" = "stego/crypto/kuznechik/gost_tables"
+
+[tool.uv]
+package = true

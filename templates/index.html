@@ -120,22 +120,22 @@
                 <!-- Embed LSB Visual Heatmaps results -->
                 <div class="results-container" id="visualization-gallery-wrapper" style="margin-top: 30px;">
                     <h3>Анализ заполненности LSB по картам дисперсии</h3>
-                    <p class="vis-hint">Показывает распределение бит по блокам 4x4. Чем ярче цвет, тем больше бит встроено в канал.</p>
+                    <p class="vis-hint">Распределение блоков 4×4 по картам дисперсии: красный — без встраивания (0), жёлтый — 1 bit/channel, зелёный — 2 bits/channel.</p>
                     <div class="vis-gallery">
                         <div class="vis-item">
                             <span class="vis-label">Сводная карта (RGB)</span>
                             <img src="" id="vis-full" alt="LSB RGB Map">
                         </div>
                         <div class="vis-item">
-                            <span class="vis-label">Карта низких частот (1 bit/channel)</span>
+                            <span class="vis-label">Без встраивания (0 bit / низкая дисперсия)</span>
                             <img src="" id="vis-0" alt="LSB 0 Map">
                         </div>
                         <div class="vis-item">
-                            <span class="vis-label">Карта средних частот (2 bits/channel)</span>
+                            <span class="vis-label">1 bit/channel</span>
                             <img src="" id="vis-1" alt="LSB 1 Map">
                         </div>
                         <div class="vis-item">
-                            <span class="vis-label">Карта высоких частот (3 bits/channel)</span>
+                            <span class="vis-label">2 bits/channel</span>
                             <img src="" id="vis-2" alt="LSB 2 Map">
                         </div>
                     </div>

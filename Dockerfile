@@ -20,8 +20,7 @@ COPY bot ./bot
 COPY stego ./stego
 COPY cli.py config.py web_app.py tgbot.py ./
 
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev
+RUN uv sync --frozen --no-dev
 
 FROM python:3.12-slim-bookworm AS runtime
 

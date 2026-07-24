@@ -26,12 +26,12 @@ def create_app() -> FastAPI:
     """Application factory."""
     settings = get_settings()
     settings.temp_dir.mkdir(parents=True, exist_ok=True)
-    settings.static_dir.mkdir(parents=True, exist_ok=True)
+    settings.generated_dir.mkdir(parents=True, exist_ok=True)
     settings.templates_dir.mkdir(parents=True, exist_ok=True)
 
     cleanup = TempCleanupService(
         temp_dir=settings.temp_dir,
-        static_dir=settings.static_dir,
+        generated_dir=settings.generated_dir,
         max_age_seconds=settings.cleanup_max_age_seconds,
         interval_seconds=settings.cleanup_interval_seconds,
     )
@@ -40,14 +40,12 @@ def create_app() -> FastAPI:
     async def lifespan(_app: FastAPI):
         get_app_context()
         cleanup.start()
-        bot_thread: threading.Thread | None = None
         if settings.run_telegram_bot and settings.telegram_bot_token:
-            bot_thread = threading.Thread(
+            threading.Thread(
                 target=_start_telegram_bot,
                 name="telegram-bot",
                 daemon=True,
-            )
-            bot_thread.start()
+            ).start()
         elif not settings.telegram_bot_token:
             logger.info("TELEGRAM_BOT_TOKEN not set. Running web interface only.")
         else:
@@ -68,7 +66,14 @@ def create_app() -> FastAPI:
         ),
         lifespan=lifespan,
     )
+    # Bundled assets (CSS/JS/avatar) from the image.
     app.mount("/static", StaticFiles(directory=str(settings.static_dir)), name="static")
+    # Writable generated overlays (Railway-safe /tmp path).
+    app.mount(
+        "/media",
+        StaticFiles(directory=str(settings.generated_dir)),
+        name="media",
+    )
     register_routes(app)
     return app
 

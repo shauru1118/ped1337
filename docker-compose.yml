@@ -7,16 +7,18 @@ services:
     environment:
       PORT: "8000"
       HOST: "0.0.0.0"
-      TEMP_DIR_PATH: /app/temp
-      KEY_FILE_PATH: /app/data/key.key
+      WRITABLE_DIR: /tmp/ped1337
+      TEMP_DIR_PATH: /tmp/ped1337/temp
+      KEY_FILE_PATH: /tmp/ped1337/key.key
+      GENERATED_STATIC_DIR: /tmp/ped1337/generated
       RUN_TELEGRAM_BOT: ${RUN_TELEGRAM_BOT:-false}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       ADMIN_CHAT_ID: ${ADMIN_CHAT_ID:-}
+      DEFAULT_KEY_B64: ${DEFAULT_KEY_B64:-}
       CLEANUP_MAX_AGE_SECONDS: ${CLEANUP_MAX_AGE_SECONDS:-300}
       CLEANUP_INTERVAL_SECONDS: ${CLEANUP_INTERVAL_SECONDS:-60}
     volumes:
-      - app-data:/app/data
-      - app-temp:/app/temp
+      - app-writable:/tmp/ped1337
     restart: unless-stopped
     healthcheck:
       test:
@@ -37,15 +39,15 @@ services:
     image: ped1337:latest
     command: ["python", "-m", "bot"]
     environment:
-      TEMP_DIR_PATH: /app/temp
-      KEY_FILE_PATH: /app/data/key.key
+      WRITABLE_DIR: /tmp/ped1337
+      TEMP_DIR_PATH: /tmp/ped1337/temp
+      KEY_FILE_PATH: /tmp/ped1337/key.key
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       ADMIN_CHAT_ID: ${ADMIN_CHAT_ID:-}
+      DEFAULT_KEY_B64: ${DEFAULT_KEY_B64:-}
     volumes:
-      - app-data:/app/data
-      - app-temp:/app/temp
+      - app-writable:/tmp/ped1337
     restart: unless-stopped
 
 volumes:
-  app-data:
-  app-temp:
+  app-writable:

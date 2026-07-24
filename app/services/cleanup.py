@@ -13,12 +13,12 @@ class TempCleanupService:
     def __init__(
         self,
         temp_dir: Path,
-        static_dir: Path,
+        generated_dir: Path,
         max_age_seconds: int = 300,
         interval_seconds: int = 60,
     ) -> None:
         self.temp_dir = temp_dir
-        self.static_dir = static_dir
+        self.generated_dir = generated_dir
         self.max_age_seconds = max_age_seconds
         self.interval_seconds = interval_seconds
         self._thread: threading.Thread | None = None
@@ -47,7 +47,7 @@ class TempCleanupService:
     def run_once(self) -> None:
         cutoff = time.time() - self.max_age_seconds
         self._purge_dir(self.temp_dir, cutoff)
-        self._purge_dir(self.static_dir, cutoff, prefix="vis_")
+        self._purge_dir(self.generated_dir, cutoff, prefix="vis_")
 
     @staticmethod
     def _purge_dir(

@@ -15,5 +15,9 @@ def get_settings() -> AppSettings:
 def get_app_context() -> AppContext:
     cfg = get_settings()
     cfg.temp_dir.mkdir(parents=True, exist_ok=True)
+    cfg.generated_dir.mkdir(parents=True, exist_ok=True)
     cfg.static_dir.mkdir(parents=True, exist_ok=True)
-    return AppContext(str(cfg.key_file_path))
+    return AppContext(
+        key_file_path=str(cfg.key_file_path),
+        default_key_b64=cfg.default_key_b64,
+    )

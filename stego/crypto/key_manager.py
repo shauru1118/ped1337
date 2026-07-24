@@ -16,6 +16,9 @@ class FileKeyManager(IKeyManager):
     def save(self, path: str, key: bytes) -> None:
         if not key or len(key) != 32:
             raise InvalidKeyError("Key must be exactly 32 bytes.")
+        parent = os.path.dirname(path)
+        if parent:
+            os.makedirs(parent, exist_ok=True)
         with open(path, "wb") as f:
             f.write(key)
 

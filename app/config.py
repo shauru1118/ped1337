@@ -24,6 +24,34 @@ def _normalize_token(raw: str | None) -> str | None:
     return token
 
 
+def _is_container_runtime() -> bool:
+    return bool(
+        os.getenv("RAILWAY_ENVIRONMENT")
+        or os.getenv("RAILWAY_PROJECT_ID")
+        or os.path.exists("/.dockerenv")
+    )
+
+
+def _writable_root(base: Path) -> Path:
+    """Directory that is writable in local, Docker and Railway runtimes."""
+    override = os.getenv("WRITABLE_DIR")
+    if override:
+        return Path(override)
+    if _is_container_runtime():
+        return Path("/tmp/ped1337")
+    return base
+
+
+def _resolve_path(raw: str | None, default: Path, root: Path) -> Path:
+    if not raw:
+        return default
+    path = Path(raw)
+    if path.is_absolute():
+        return path
+    # Relative paths from env (e.g. KEY_FILE_PATH=key.key) must land in a writable root.
+    return root / path
+
+
 @dataclass(frozen=True)
 class AppSettings:
     """Application runtime settings loaded from environment variables."""
@@ -31,8 +59,10 @@ class AppSettings:
     base_dir: Path
     telegram_bot_token: str | None
     admin_chat_id: str | None
+    default_key_b64: str | None
     temp_dir: Path
     static_dir: Path
+    generated_dir: Path
     templates_dir: Path
     key_file_path: Path
     run_telegram_bot: bool
@@ -44,12 +74,26 @@ class AppSettings:
     @classmethod
     def from_env(cls) -> "AppSettings":
         base = BASE_DIR
-        temp = Path(os.getenv("TEMP_DIR_PATH") or (base / "temp"))
-        key = Path(os.getenv("KEY_FILE_PATH") or (base / "key.key"))
+        writable = _writable_root(base)
+        temp = _resolve_path(
+            os.getenv("TEMP_DIR_PATH"),
+            writable / "temp",
+            writable,
+        )
+        key = _resolve_path(
+            os.getenv("KEY_FILE_PATH"),
+            writable / "key.key",
+            writable,
+        )
+        generated = _resolve_path(
+            os.getenv("GENERATED_STATIC_DIR"),
+            writable / "generated",
+            writable,
+        )
         token = _normalize_token(os.getenv("TELEGRAM_BOT_TOKEN"))
+        default_key_b64 = os.getenv("DEFAULT_KEY_B64") or None
 
         run_bot = _env_flag("RUN_TELEGRAM_BOT", "false")
-        # If a real token is present and RUN_TELEGRAM_BOT is unset, enable the bot.
         if token and os.getenv("RUN_TELEGRAM_BOT") is None:
             run_bot = True
 
@@ -57,8 +101,10 @@ class AppSettings:
             base_dir=base,
             telegram_bot_token=token,
             admin_chat_id=os.getenv("ADMIN_CHAT_ID") or None,
+            default_key_b64=default_key_b64,
             temp_dir=temp,
             static_dir=base / "static",
+            generated_dir=generated,
             templates_dir=base / "templates",
             key_file_path=key,
             run_telegram_bot=run_bot,

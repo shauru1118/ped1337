@@ -17,6 +17,7 @@ async def api_visualize(stego: UploadFile = File(...)):
     """Generates visual LSB maps and returns web URLs for them."""
     ctx = get_app_context()
     settings = get_settings()
+    settings.generated_dir.mkdir(parents=True, exist_ok=True)
     temp_stego = settings.temp_dir / f"web_vis_{uuid.uuid4().hex}_{stego.filename}"
 
     try:
@@ -29,9 +30,9 @@ async def api_visualize(stego: UploadFile = File(...)):
             path_obj = Path(path_str)
             if path_obj.exists():
                 web_filename = f"vis_{uuid.uuid4().hex}_{path_obj.name}"
-                dest = settings.static_dir / web_filename
+                dest = settings.generated_dir / web_filename
                 dest.write_bytes(path_obj.read_bytes())
-                web_urls.append(f"/static/{web_filename}")
+                web_urls.append(f"/media/{web_filename}")
                 try:
                     os.remove(path_obj)
                 except OSError:

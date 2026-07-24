@@ -27,8 +27,10 @@ FROM python:3.12-slim-bookworm AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PORT=8000 \
-    TEMP_DIR_PATH=/app/temp \
-    KEY_FILE_PATH=/app/data/key.key \
+    WRITABLE_DIR=/tmp/ped1337 \
+    TEMP_DIR_PATH=/tmp/ped1337/temp \
+    KEY_FILE_PATH=/tmp/ped1337/key.key \
+    GENERATED_STATIC_DIR=/tmp/ped1337/generated \
     RUN_TELEGRAM_BOT=false \
     PATH="/app/.venv/bin:$PATH"
 
@@ -39,14 +41,13 @@ RUN apt-get update \
         libjpeg62-turbo \
         zlib1g \
     && rm -rf /var/lib/apt/lists/* \
-    && useradd --create-home --uid 10001 appuser
+    && useradd --create-home --uid 10001 appuser \
+    && mkdir -p /tmp/ped1337/temp /tmp/ped1337/generated \
+    && chown -R appuser:appuser /tmp/ped1337
 
 COPY --from=builder --chown=appuser:appuser /app /app
 COPY --chown=appuser:appuser static ./static
 COPY --chown=appuser:appuser templates ./templates
-
-RUN mkdir -p /app/temp /app/data \
-    && chown -R appuser:appuser /app/temp /app/data
 
 USER appuser
 

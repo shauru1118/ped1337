@@ -55,6 +55,10 @@ docker compose --profile bot up --build
 
 ## Railway
 
-1. Deploy from repo (Dockerfile / `railway.toml`).
-2. Set `TELEGRAM_BOT_TOKEN` / `ADMIN_CHAT_ID` and `RUN_TELEGRAM_BOT=true` if the bot should run inside the web service.
-3. Health check: `/health`.
+1. New project from this repo (Dockerfile / `railway.toml`).
+2. Variables (recommended):
+   - leave `KEY_FILE_PATH` / `TEMP_DIR_PATH` unset, **or** set them under `/tmp/ped1337/...`
+   - optional `DEFAULT_KEY_B64` — stable default key across restarts
+   - optional `TELEGRAM_BOT_TOKEN` + `RUN_TELEGRAM_BOT=true`
+3. Health check: `/health`
+4. Do **not** copy local `KEY_FILE_PATH=key.key` into Railway — `/app` is often read-only.
